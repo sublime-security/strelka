@@ -442,7 +442,7 @@ scanners:
         flavors:
           - 'mz_file'
           - 'application/msword'
-          - 'text/plan'
+          - 'text/plain'
           - 'xml_file'
           - 'soap_file'
           - 'plist_file'
