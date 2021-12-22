@@ -46,10 +46,8 @@ jobs:
         run: |
           echo "::set-output name=SEM_VER::0.3.0"
 
-          MAJOR_VERSION=$(echo "$SEM_VER" | grep -E -o "^[0-9]+")
           echo "::set-output name=MAJOR_VERSION::0"
 
-          MINOR_VERSION=$(echo "$SEM_VER" | grep -E -o "^[0-9]+\.[0-9]+")
           echo "::set-output name=MINOR_VERSION::0.3"
 
       # Right now just pull the image in order to tag it. There might be alternatives:
