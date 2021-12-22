@@ -74,6 +74,7 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION sublimesec/strelka-frontend:$MINOR_VERSION
 
           echo "Has Tagged"
+          docker images
 
           docker push --all-tags $ECR_REGISTRY/strelka-frontend:latest
           echo "Has Pushed ECR"
