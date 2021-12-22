@@ -5,7 +5,7 @@ name: Finalize Tags
 # latest, 0, and 0.1 to point to the 0.1.2 image.
 
 on:
-  create:
+  push
 
 jobs:
   update_latest_tag:
@@ -45,17 +45,13 @@ jobs:
       - name: Determine the version from the tag
         id: get_ver
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+.[0-9]*")
-          if [ -z $SEM_VER ]; then
-            exit 1
-          fi
-          echo "::set-output name=SEM_VER::$SEM_VER"
+          echo "::set-output name=SEM_VER::0.3.0"
 
           MAJOR_VERSION=$(echo "$SEM_VER" | grep -E -o "^[0-9]+")
-          echo "::set-output name=MAJOR_VERSION::$MAJOR_VERSION"
+          echo "::set-output name=MAJOR_VERSION::0"
 
           MINOR_VERSION=$(echo "$SEM_VER" | grep -E -o "^[0-9]+\.[0-9]+")
-          echo "::set-output name=MINOR_VERSION::$MINOR_VERSION"
+          echo "::set-output name=MINOR_VERSION::0.3"
 
       # Right now just pull the image in order to tag it. There might be alternatives:
       # https://stackoverflow.com/questions/37134929/how-to-tag-image-in-docker-registry-v2/38362476#38362476 (auth unclear)
@@ -69,7 +65,8 @@ jobs:
           MINOR_VERSION: ${{ steps.get_ver.outputs.MINOR_VERSION }}
         run: |
           docker pull $ECR_REGISTRY/strelka-frontend:$VERSION
-
+          echo "Has Pulled"
+          
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION $ECR_REGISTRY/strelka-frontend:latest
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION sublimesec/strelka-frontend:latest
 
@@ -79,8 +76,13 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION $ECR_REGISTRY/strelka-frontend:$MINOR_VERSION
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION sublimesec/strelka-frontend:$MINOR_VERSION
 
+          echo "Has Tagged"
+
           docker push --all-tags $ECR_REGISTRY/strelka-frontend:latest
+          echo "Has Pushed ECR"
+
           docker push --all-tags sublimesec/strelka-frontend:latest
+          echo "Has Pushed DH"
 
       - name: Pull, Tag, Push BackEnd
         env:
