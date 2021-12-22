@@ -62,7 +62,6 @@ jobs:
           MINOR_VERSION: ${{ steps.get_ver.outputs.MINOR_VERSION }}
         run: |
           docker pull $ECR_REGISTRY/strelka-frontend:$VERSION
-          echo "Has Pulled"
           
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION $ECR_REGISTRY/strelka-frontend:latest
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION sublimesec/strelka-frontend:latest
@@ -73,14 +72,8 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION $ECR_REGISTRY/strelka-frontend:$MINOR_VERSION
           docker tag $ECR_REGISTRY/strelka-frontend:$VERSION sublimesec/strelka-frontend:$MINOR_VERSION
 
-          echo "Has Tagged"
-          docker images
-
           docker push --all-tags $ECR_REGISTRY/strelka-frontend
-          echo "Has Pushed ECR"
-
           docker push --all-tags sublimesec/strelka-frontend
-          echo "Has Pushed DH"
 
       - name: Pull, Tag, Push BackEnd
         env:
@@ -100,8 +93,8 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-backend:$VERSION $ECR_REGISTRY/strelka-backend:$MINOR_VERSION
           docker tag $ECR_REGISTRY/strelka-backend:$VERSION sublimesec/strelka-backend:$MINOR_VERSION
 
-          docker push --all-tags $ECR_REGISTRY/strelka-backend:latest
-          docker push --all-tags sublimesec/strelka-backend:latest
+          docker push --all-tags $ECR_REGISTRY/strelka-backend
+          docker push --all-tags sublimesec/strelka-backend
 
       - name: Pull, Tag, Push Manager
         env:
@@ -121,8 +114,8 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-manager:$VERSION $ECR_REGISTRY/strelka-manager:$MINOR_VERSION
           docker tag $ECR_REGISTRY/strelka-manager:$VERSION sublimesec/strelka-manager:$MINOR_VERSION
 
-          docker push --all-tags $ECR_REGISTRY/strelka-manager:latest
-          docker push --all-tags sublimesec/strelka-manager:latest
+          docker push --all-tags $ECR_REGISTRY/strelka-manager
+          docker push --all-tags sublimesec/strelka-manager
 
       - name: Pull, Tag, Push MMRPC
         env:
@@ -142,8 +135,8 @@ jobs:
           docker tag $ECR_REGISTRY/strelka-mmrpc:$VERSION $ECR_REGISTRY/strelka-mmrpc:$MINOR_VERSION
           docker tag $ECR_REGISTRY/strelka-mmrpc:$VERSION sublimesec/strelka-mmrpc:$MINOR_VERSION
 
-          docker push --all-tags $ECR_REGISTRY/strelka-mmrpc:latest
-          docker push --all-tags sublimesec/strelka-mmrpc:latest
+          docker push --all-tags $ECR_REGISTRY/strelka-mmrpc
+          docker push --all-tags sublimesec/strelka-mmrpc
 
       - name: Validate All X-Region Replication
         run: |
