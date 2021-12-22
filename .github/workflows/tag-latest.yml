@@ -76,10 +76,10 @@ jobs:
           echo "Has Tagged"
           docker images
 
-          docker push --all-tags $ECR_REGISTRY/strelka-frontend:latest
+          docker push --all-tags $ECR_REGISTRY/strelka-frontend
           echo "Has Pushed ECR"
 
-          docker push --all-tags sublimesec/strelka-frontend:latest
+          docker push --all-tags sublimesec/strelka-frontend
           echo "Has Pushed DH"
 
       - name: Pull, Tag, Push BackEnd
