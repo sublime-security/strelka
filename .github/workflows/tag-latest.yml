@@ -10,7 +10,6 @@ on:
 jobs:
   update_latest_tag:
     name: Build & Push to Registries
-    if: ${{ startsWith(github.ref, 'refs/tags/latest-v') }}
     runs-on: ubuntu-latest
     environment: production
     permissions:
