@@ -35,12 +35,11 @@ jobs:
         uses: crazy-max/ghaction-docker-meta@v2
         with:
           images: |
-            ${{ steps.login-ecr.outputs.registry }}/strelka-backend
             sublimesec/strelka-backend
           flavor: |
             latest=false
-          tags: |
-            type=semver,pattern={{version}}
+          tags:
+            dev
 
       - name: Login to DockerHub
         uses: docker/login-action@v1
@@ -61,4 +60,4 @@ jobs:
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
         run: |
-          docker push --all-tags sublimesec/strelka-backend
+          docker push sublimesec/strelka-backend:dev
