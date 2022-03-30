@@ -46,6 +46,8 @@ type request struct {
 	Time       int64               `json:"time,omitempty"`
 }
 
+var checkForResultsSleepRampUp = []time.Duration{time.Millisecond, 10 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 250 * time.Millisecond}
+
 func (s *server) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
 }
@@ -157,10 +159,14 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		(*tx).Del(stream.Context(), sha)
 	}
 
-	for {
+	for i := 0; ; i++ {
 		lpop, err := s.coordinator.cli.LPop(stream.Context(), keye).Result()
 		if err != nil {
-			time.Sleep(250 * time.Millisecond)
+			sleepTime := checkForResultsSleepRampUp[len(checkForResultsSleepRampUp)-1]
+			if i < len(checkForResultsSleepRampUp) {
+				sleepTime = checkForResultsSleepRampUp[i]
+			}
+			time.Sleep(sleepTime)
 			continue
 		}
 		if lpop == "FIN" {
