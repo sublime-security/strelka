@@ -46,7 +46,7 @@ type request struct {
 	Time       int64               `json:"time,omitempty"`
 }
 
-var checkForResultsSleepRampUp = []time.Duration{time.Millisecond, 10 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 250 * time.Millisecond}
+var checkForResultsSleepRampUp = []time.Duration{10 * time.Millisecond, 50 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 250 * time.Millisecond}
 
 func (s *server) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
