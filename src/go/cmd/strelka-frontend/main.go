@@ -157,7 +157,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		(*tx).Del(stream.Context(), sha)
 	}
 
-	for i := 0; ; i++ {
+	for {
 		res, err := s.coordinator.cli.BLPop(stream.Context(), 5*time.Second, keye).Result()
 		if err != nil {
 			continue
