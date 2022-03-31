@@ -46,8 +46,6 @@ type request struct {
 	Time       int64               `json:"time,omitempty"`
 }
 
-var checkForResultsSleepRampUp = []time.Duration{10 * time.Millisecond, 50 * time.Millisecond, 100 * time.Millisecond, 100 * time.Millisecond, 250 * time.Millisecond}
-
 func (s *server) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
 	return &grpc_health_v1.HealthCheckResponse{Status: grpc_health_v1.HealthCheckResponse_SERVING}, nil
 }
@@ -160,15 +158,16 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 	}
 
 	for i := 0; ; i++ {
-		lpop, err := s.coordinator.cli.LPop(stream.Context(), keye).Result()
+		res, err := s.coordinator.cli.BLPop(stream.Context(), 5*time.Second, keye).Result()
 		if err != nil {
-			sleepTime := checkForResultsSleepRampUp[len(checkForResultsSleepRampUp)-1]
-			if i < len(checkForResultsSleepRampUp) {
-				sleepTime = checkForResultsSleepRampUp[i]
-			}
-			time.Sleep(sleepTime)
 			continue
 		}
+		// first element will be the name of queue/event, second element is event itself
+		if len(res) != 2 {
+			return fmt.Errorf("unexpected result length")
+		}
+
+		lpop := res[1]
 		if lpop == "FIN" {
 			break
 		}
