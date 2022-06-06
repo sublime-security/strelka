@@ -270,11 +270,11 @@ scanners:
       priority: 5
       options:
         limit: 1000
-#  'ScanLNK':
-#    - positive:
-#        flavors:
-#          - 'lnk_file'
-#      priority: 5
+  'ScanLNK':
+    - positive:
+        flavors:
+          - 'lnk_file'
+      priority: 5
   'ScanLzma':
     - positive:
         flavors:
