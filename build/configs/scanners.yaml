@@ -50,13 +50,13 @@ scanners:
 #          - 'application/x-coredump'
 #          - 'elf_file'
 #      priority: 5
-#  'ScanEmail':
-#    - positive:
-#        flavors:
-#          - 'application/vnd.ms-outlook'
-#          - 'message/rfc822'
-#          - 'email_file'
-#      priority: 5
+  'ScanEmail':
+    - positive:
+        flavors:
+          - 'application/vnd.ms-outlook'
+          - 'message/rfc822'
+          - 'email_file'
+      priority: 5
   'ScanEncryptedDoc':
     - positive:
         flavors:
