@@ -51,7 +51,7 @@ class ScanRtf(strelka.Scanner):
 
             else:
                 extract_file = strelka.File(
-                    name=f'rtf_object',
+                    name='rtf_object',
                     source=self.name,
                 )
 
