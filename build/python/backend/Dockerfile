@@ -7,6 +7,14 @@ ARG YARA_PYTHON_VERSION=4.2.0
 ARG CAPA_VERSION=3.2.1
 ARG EXIFTOOL_VERSION=12.44
 
+RUN apt-get update -y && apt-get install -y \
+    # expat: CVE-2022-23852 & CVE-2022-23990;
+    expat=2.4.1-2ubuntu0.3 \
+    # mount & util-linux: CVE-2021-3996 & CVE-2021-3995
+    mount=2.36.1-8ubuntu2.2 util-linux=2.36.1-8ubuntu2.2 \
+    # libsepol: CVE-2021-36087 & USN-5391-1 & CVE-2021-36084 & CVE-2021-36086
+    libsepol1=3.1-1ubuntu2.1 sepol-utils=3.1-1ubuntu2.1 \
+
 # Update packages
 RUN apt-get -qq update && \
 # Install build packages
@@ -102,7 +110,7 @@ RUN apt-get -qq update \
 RUN mkdir jtr && cd jtr && git init && git remote add origin https://github.com/openwall/john.git && git fetch --depth 1 origin b5c10480f56ff1b5d76c6cbdaf9c817582ee2228 && git reset --hard FETCH_HEAD \
   && rm -rf /jtr/.git \
   && cd /jtr/src \
-  && ./configure \
+  && ./configure --disable-native-tests \
   && make -s clean \
   && make -sj4 \
   && make install \
