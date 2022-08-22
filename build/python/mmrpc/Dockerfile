@@ -1,10 +1,10 @@
-FROM ubuntu:22.10
+FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 
 # Update packages
 RUN apt-get -qq update && \
-    apt-get install --no-install-recommends -qq \
+    apt-get install --qq \
 # Install build packages
     build-essential \
     git \
