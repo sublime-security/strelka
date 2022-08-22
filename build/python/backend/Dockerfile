@@ -13,7 +13,7 @@ RUN apt-get update -y && apt-get install -y \
     # mount & util-linux: CVE-2021-3996 & CVE-2021-3995
     mount=2.36.1-8ubuntu2.2 util-linux=2.36.1-8ubuntu2.2 \
     # libsepol: CVE-2021-36087 & USN-5391-1 & CVE-2021-36084 & CVE-2021-36086
-    libsepol1=3.1-1ubuntu2.1 sepol-utils=3.1-1ubuntu2.1 \
+    libsepol1=3.1-1ubuntu2.1 sepol-utils=3.1-1ubuntu2.1
 
 # Update packages
 RUN apt-get -qq update && \
