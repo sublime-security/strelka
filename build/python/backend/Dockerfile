@@ -1,5 +1,3 @@
-
-
 FROM ubuntu:22.10
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
