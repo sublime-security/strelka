@@ -4,7 +4,7 @@ LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 
 # Update packages
 RUN apt-get -qq update && \
-    apt-get install --qq \
+    apt-get install --no-install-recommends -qq \
 # Install build packages
     build-essential \
     git \
