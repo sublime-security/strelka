@@ -3,6 +3,7 @@ import re
 
 from strelka import strelka
 
+base64Re = re.compile("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$")
 
 class ScanHtml(strelka.Scanner):
     """Collects metadata and extracts embedded scripts from HTML files.
@@ -145,7 +146,10 @@ class ScanHtml(strelka.Scanner):
             divs = soup.find_all('div')
             for div in divs:
                 div_content = div.string
-                maybeBase64 = re.search("^([A-Za-z0-9+/]{4})*([A-Za-z0-9+/]{3}=|[A-Za-z0-9+/]{2}==)?$", div_content)
+                if div_content is None:
+                    continue
+
+                maybeBase64 = base64Re.search(div_content)
 
                 if maybeBase64:
                     extract_file = strelka.File(
