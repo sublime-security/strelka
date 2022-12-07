@@ -20,6 +20,7 @@ func main() {
 	connCert := flag.String("c", "", "path to connection certificate")
 	logPath := flag.String("l", "strelka-oneshot.log", "path to response log file")
 	scanFile := flag.String("f", "", "file to submit for scanning")
+	yaraFile := flag.String("y", "", "file to submit for additional yara rules")
 	flag.Parse()
 
 	// scanFile is mandatory
@@ -71,6 +72,10 @@ func main() {
 		Chunk:  32768,
 		Delay:  time.Second * 0,
 		Delete: false,
+	}
+
+	if yaraFile != nil {
+		req.Attributes.YARAFilename = *yaraFile
 	}
 
 	rpc.ScanFile(frontend, time.Minute*1, req, responses)

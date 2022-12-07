@@ -87,6 +87,7 @@ func (m *Request) GetGatekeeper() bool {
 
 type Attributes struct {
 	Filename             string            `protobuf:"bytes,1,opt,name=filename,proto3" json:"filename,omitempty"`
+	YARAFilename 		 string			   `json:"yaraFilename,omitempty"`
 	Metadata             map[string]string `protobuf:"bytes,2,rep,name=metadata,proto3" json:"metadata,omitempty" protobuf_key:"bytes,1,opt,name=key,proto3" protobuf_val:"bytes,2,opt,name=value,proto3"`
 	XXX_NoUnkeyedLiteral struct{}          `json:"-"`
 	XXX_unrecognized     []byte            `json:"-"`
@@ -134,6 +135,7 @@ func (m *Attributes) GetMetadata() map[string]string {
 
 type ScanFileRequest struct {
 	Data                 []byte      `protobuf:"bytes,1,opt,name=data,proto3" json:"data,omitempty"`
+	YARAData 			 []byte  	 `json:"data.omitempty"`
 	Request              *Request    `protobuf:"bytes,2,opt,name=request,proto3" json:"request,omitempty"`
 	Attributes           *Attributes `protobuf:"bytes,3,opt,name=attributes,proto3" json:"attributes,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}    `json:"-"`

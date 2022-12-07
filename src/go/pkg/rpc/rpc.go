@@ -6,9 +6,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
-	"path/filepath"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
@@ -129,21 +129,39 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 	if req.Delete {
 		defer os.Remove(req.Attributes.Filename)
 	} else if req.Processed != "" {
-                defer func() {
-                        _, name := filepath.Split(req.Attributes.Filename)
-                        m := filepath.Join(req.Processed, name)
-                        err := os.Rename(req.Attributes.Filename, m)
-                        if err != nil {
-                                log.Printf("failed to move file %s to directory %s: %v", name, req.Processed, err)
-                        }
-                }()
-        }
+		defer func() {
+			_, name := filepath.Split(req.Attributes.Filename)
+			m := filepath.Join(req.Processed, name)
+			err := os.Rename(req.Attributes.Filename, m)
+			if err != nil {
+				log.Printf("failed to move file %s to directory %s: %v", name, req.Processed, err)
+			}
+		}()
+	}
 	defer file.Close()
 
 	scanFile, err := client.ScanFile(ctx, grpc.WaitForReady(true))
 	if err != nil {
 		log.Println(errToMsg(err))
 		return
+	}
+
+	var YARAFile *os.File
+	var YARABuf []byte
+	if req.Attributes.YARAFilename != "" {
+		YARAFile, err = os.Open(req.Attributes.Filename)
+		if err != nil {
+			log.Println(errToMsg(err))
+			return
+		}
+		defer YARAFile.Close()
+
+		YARABuf = make([]byte, 32000)
+		_, err = YARAFile.Read(YARABuf)
+		if err != nil && err != io.EOF {
+			log.Println("failed to read YARA file")
+			return
+		}
 	}
 
 	buffer := make([]byte, req.Chunk)
@@ -162,6 +180,7 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 		scanFile.Send(
 			&strelka.ScanFileRequest{
 				Data:       buffer[:n],
+				YARAData:   YARABuf,
 				Request:    req.Request,
 				Attributes: req.Attributes,
 			},
