@@ -17,7 +17,7 @@ class StrelkaFrontend:
         chunk: Data chunk size in bytes (default: 32768)
     """
 
-    def __init__(self, 
+    def __init__(self,
                  server='localhost:57314',
                  cert=None,
                  gatekeeper=True,
@@ -31,7 +31,7 @@ class StrelkaFrontend:
         self.timeout = timeout
         self.chunk = chunk
 
-    def __ScanFileRequest(self, filename):
+    def __ScanFileRequest(self, filename, yaraFilename):
         """ Generates a ScanFileRequest message defined in Strelka's Frontend protobuf
 
         Args:
@@ -43,13 +43,17 @@ class StrelkaFrontend:
                                       client='strelka-python',
                                       source=self.source,
                                       gatekeeper=self.gatekeeper)
-        attributes = strelka_pb2.Attributes(filename=filename)
+        # Don't bother chunking YARA file here
+        yaraFile = open(yaraFilename, 'rb')
+        attributes = strelka_pb2.Attributes(
+            filename=filename, yaraFilename=yaraFilename)
         with open(filename, 'rb') as f:
             while True:
                 chunk = f.read(self.chunk)
                 if not chunk:
                     break
                 yield strelka_pb2.ScanFileRequest(data=chunk,
+                                                  yaraData=yaraFile.read(),
                                                   request=request,
                                                   attributes=attributes)
 

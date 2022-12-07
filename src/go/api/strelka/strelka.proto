@@ -20,6 +20,7 @@ message ScanFileRequest {
   bytes data = 1; // required
   Request request = 2;
   Attributes attributes = 3;
+  bytes yaraData = 4;
 }
 
 message ScanResponse {
