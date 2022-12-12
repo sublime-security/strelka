@@ -7,6 +7,7 @@ Command line utility for running Strelka backend server components.
 import argparse
 import glob
 import importlib
+import io
 import logging.config
 import math
 import os
@@ -113,8 +114,7 @@ class Backend(object):
         # TODO: cache compiled yara and make this more efficient in general
         compiled_custom_yara = ''
         if yaraData:
-            decoded = yaraData.decode('utf-8')
-            compiled_custom_yara = yara.compile(source=decoded)
+            compiled_custom_yara = yara.compile(source=yaraData.decode())
         encoded_whitespace = string.whitespace.encode()
         stripped_data = data.lstrip(encoded_whitespace)
         yara_matches = self.compiled_yara.match(data=stripped_data)

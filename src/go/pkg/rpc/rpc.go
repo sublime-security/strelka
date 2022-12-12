@@ -148,20 +148,23 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 
 	var YARAFile *os.File
 	var YARABuf []byte
-	if req.Attributes.YARAFilename != "" {
-		YARAFile, err = os.Open(req.Attributes.Filename)
+	log.Println("YARA filename")
+	log.Println(req.Attributes.YaraFilename)
+	if req.Attributes.YaraFilename != "" {
+		YARAFile, err = os.Open(req.Attributes.YaraFilename)
 		if err != nil {
 			log.Println(errToMsg(err))
 			return
 		}
 		defer YARAFile.Close()
 
-		YARABuf = make([]byte, 32000)
+		YARABuf = make([]byte, 0)
 		_, err = YARAFile.Read(YARABuf)
 		if err != nil && err != io.EOF {
 			log.Println("failed to read YARA file")
 			return
 		}
+		log.Println(string(YARABuf))
 	}
 
 	buffer := make([]byte, req.Chunk)
@@ -180,7 +183,7 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 		scanFile.Send(
 			&strelka.ScanFileRequest{
 				Data:       buffer[:n],
-				YARAData:   YARABuf,
+				YaraData:   YARABuf,
 				Request:    req.Request,
 				Attributes: req.Attributes,
 			},

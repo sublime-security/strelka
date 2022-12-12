@@ -76,8 +76,10 @@ func main() {
 		Delete: false,
 	}
 
+	log.Printf("Is YARA?")
 	if yaraFile != nil {
-		req.Attributes.YARAFilename = *yaraFile
+		log.Printf(*yaraFile)
+		req.Attributes.YaraFilename = *yaraFile
 	}
 
 	rpc.ScanFile(frontend, time.Minute*1, req, responses)
