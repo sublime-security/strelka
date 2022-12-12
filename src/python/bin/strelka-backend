@@ -108,11 +108,18 @@ class Backend(object):
         """Tastes file data with libmagic."""
         return [self.compiled_magic.from_buffer(data)]
 
-    def taste_yara(self, data):
+    def taste_yara(self, data, yaraData):
         """Tastes file data with YARA."""
+        # TODO: cache compiled yara and make this more efficient in general
+        compiled_custom_yara = ''
+        if yaraData:
+            decoded = yaraData.decode('utf-8')
+            compiled_custom_yara = yara.compile(source=decoded)
         encoded_whitespace = string.whitespace.encode()
         stripped_data = data.lstrip(encoded_whitespace)
         yara_matches = self.compiled_yara.match(data=stripped_data)
+        if compiled_custom_yara:
+            yara_matches.extend(compiled_custom_yara.match(data=stripped_data))
         return [match.rule for match in yara_matches]
 
     def distribute(self, root_id, file, expire_at):
@@ -128,14 +135,19 @@ class Backend(object):
                         return
 
                     data = b''
+                    yaraData = b''
                     while 1:
                         pop = self.coordinator.lpop(f'data:{file.pointer}')
                         if pop is None:
                             break
                         data += pop
 
+                        ypop = self.coordinator.lpop(f'yara:{file.pointer}')
+                        if ypop is not None:
+                            yaraData += ypop
+
                     file.add_flavors({'mime': self.taste_mime(data)})
-                    file.add_flavors({'yara': self.taste_yara(data)})
+                    file.add_flavors({'yara': self.taste_yara(data, yaraData)})
                     flavors = (
                         file.flavors.get('external', [])
                         + file.flavors.get('mime', [])
