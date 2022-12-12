@@ -31,8 +31,10 @@ func main() {
 
 	serv := *frontendUrl
 	auth := rpc.SetAuth(*connCert)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
+
 	conn, err := grpc.DialContext(ctx, serv, auth, grpc.WithBlock())
 	if err != nil {
 		log.Fatalf("failed to connect to %s: %v", serv, err)
