@@ -23,9 +23,14 @@ class ScanYara(strelka.Scanner):
     def init(self):
         self.compiled_yara = None
 
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, custom_fields={}):
         location = options.get('location', '/etc/yara/')
         meta = options.get('meta', [])
+        meta = ['author', 'description']
+
+        compiled_custom_yara = None
+        if custom_fields.get('source'):
+            compiled_custom_yara = yara.compile(source=custom_fields['source'])
 
         try:
             if self.compiled_yara is None:
@@ -46,8 +51,13 @@ class ScanYara(strelka.Scanner):
         try:
             if self.compiled_yara is not None:
                 yara_matches = self.compiled_yara.match(data=data)
+                custom_yara_matches = compiled_custom_yara.match(data=data)
+                yara_matches.extend(custom_yara_matches)
                 for match in yara_matches:
                     self.event['matches'].append(match.rule)
+                    #self.event['matches'].append({
+                    #    'rule': match.rule,
+                    #})
                     if match.tags:
                         for tag in match.tags:
                             if not tag in self.event['tags']:

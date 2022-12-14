@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -146,21 +147,10 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 		return
 	}
 
-	var YARAFile *os.File
 	var YARABuf []byte
-	log.Println("YARA filename")
-	log.Println(req.Attributes.YaraFilename)
 	if req.Attributes.YaraFilename != "" {
-		YARAFile, err = os.Open(req.Attributes.YaraFilename)
+		YARABuf, err = ioutil.ReadFile(req.Attributes.YaraFilename)
 		if err != nil {
-			log.Println(errToMsg(err))
-			return
-		}
-		defer YARAFile.Close()
-
-		YARABuf = make([]byte, 0)
-		_, err = YARAFile.Read(YARABuf)
-		if err != nil && err != io.EOF {
 			log.Println("failed to read YARA file")
 			return
 		}

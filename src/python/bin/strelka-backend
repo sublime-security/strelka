@@ -32,6 +32,7 @@ class Backend(object):
         self.backend_cfg = backend_cfg
         self.coordinator = coordinator
         self.limits = backend_cfg.get('limits')
+        self.yaraData = b''
 
         scanners = backend_cfg.get('scanners')
         if isinstance(scanners, str):
@@ -112,9 +113,10 @@ class Backend(object):
     def taste_yara(self, data, yaraData):
         """Tastes file data with YARA."""
         # TODO: cache compiled yara and make this more efficient in general
-        compiled_custom_yara = ''
+        compiled_custom_yara = b''
         if yaraData:
-            compiled_custom_yara = yara.compile(source=yaraData.decode())
+            self.yaraData = yaraData.decode()
+            compiled_custom_yara = yara.compile(source=self.yaraData)
         encoded_whitespace = string.whitespace.encode()
         stripped_data = data.lstrip(encoded_whitespace)
         yara_matches = self.compiled_yara.match(data=stripped_data)
@@ -194,8 +196,14 @@ class Backend(object):
                     scan = {}
 
                     for scanner in scanner_list:
+                        custom_fields = {}
+
                         try:
                             name = scanner['name']
+
+                            if name == 'ScanYara':
+                                custom_fields['source'] = self.yaraData
+
                             und_name = inflection.underscore(name)
                             scanner_import = f'strelka.scanners.{und_name}'
                             module = importlib.import_module(scanner_import)
@@ -209,8 +217,12 @@ class Backend(object):
                                 file,
                                 options,
                                 expire_at,
+                                custom_fields,
                             )
                             files.extend(f)
+
+                            # this is scan output
+                            logging.info(s)
 
                             scan = {
                                 **scan,
