@@ -16,7 +16,7 @@ class ScanBatch(strelka.Scanner):
     def init(self):
         self.lexer = lexers.get_lexer_by_name('batch')
 
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         highlight = pygments.highlight(
             data,
             self.lexer,

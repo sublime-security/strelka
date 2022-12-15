@@ -11,7 +11,7 @@ class ScanTar(strelka.Scanner):
         limit: Maximum number of files to extract.
             Defaults to 1000.
     """
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         file_limit = options.get('limit', 1000)
 
         self.event['total'] = {'files': 0, 'extracted': 0}

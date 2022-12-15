@@ -10,7 +10,7 @@ class ScanVba(strelka.Scanner):
         analyze_macros: Boolean that determines if macros should be analyzed.
             Defaults to True.
     """
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         analyze_macros = options.get('analyze_macros', True)
 
         self.event['total'] = {'files': 0, 'extracted': 0}

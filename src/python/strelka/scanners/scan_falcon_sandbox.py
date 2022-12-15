@@ -81,7 +81,7 @@ class ScanFalconSandbox(strelka.Scanner):
 
         return
 
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         self.depth = options.get('depth', 0)
 
         if file.depth > self.depth:

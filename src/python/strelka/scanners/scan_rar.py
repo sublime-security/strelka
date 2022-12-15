@@ -32,7 +32,7 @@ class ScanRar(strelka.Scanner):
     def init(self):
         self.passwords = []
 
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         file_limit = options.get('limit', 1000)
         password_file = options.get('password_file', '/etc/strelka/passwords.dat')
 

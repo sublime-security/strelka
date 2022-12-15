@@ -9,7 +9,7 @@ from strelka import strelka
 
 class ScanSwf(strelka.Scanner):
     """Decompresses SWF files."""
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         with io.BytesIO(data) as swf_io:
             swf_io.seek(4)
             swf_size = struct.unpack('<i', swf_io.read(4))[0]

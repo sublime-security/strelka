@@ -6,7 +6,7 @@ class ScanJpeg(strelka.Scanner):
 
     This scanner extracts data that is inserted past the JFIF trailer.
     """
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         if not data.endswith(b'\xff\xd9'):
             trailer_index = data.rfind(b'\xff\xd9')
             if trailer_index == -1:

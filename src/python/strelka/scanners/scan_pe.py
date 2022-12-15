@@ -300,7 +300,7 @@ def parse_certificates(data):
 
 class ScanPe(strelka.Scanner):
     """Collects metadata from PE files."""
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         try:
             pe = pefile.PE(data=data)
         except pefile.PEFormatError:

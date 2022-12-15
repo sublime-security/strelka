@@ -15,7 +15,7 @@ class ScanExiftool(strelka.Scanner):
         tmp_directory: Location where tempfile writes temporary files.
             Defaults to '/tmp/'.
     """
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         keys = options.get('keys', [])
         tmp_directory = options.get('tmp_directory', '/tmp/')
 

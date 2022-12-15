@@ -6,7 +6,7 @@ from strelka import strelka
 
 class ScanGzip(strelka.Scanner):
     """Decompresses gzip files."""
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at, _):
         with io.BytesIO(data) as gzip_io:
             with gzip.GzipFile(fileobj=gzip_io) as gzip_obj:
                 decompressed = gzip_obj.read()
