@@ -76,9 +76,7 @@ func main() {
 		Delete: false,
 	}
 
-	log.Printf("Is YARA?")
 	if yaraFile != nil {
-		log.Printf(*yaraFile)
 		req.Attributes.YaraFilename = *yaraFile
 	}
 
