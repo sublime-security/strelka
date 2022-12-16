@@ -45,8 +45,6 @@ class ScanYara(strelka.Scanner):
             self.flags.append('compiling_error')
 
         self.event['matches'] = []
-        self.event['tags'] = []
-        self.event['meta'] = []
 
         try:
             if self.compiled_yara is not None:
