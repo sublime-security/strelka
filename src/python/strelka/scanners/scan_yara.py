@@ -54,24 +54,19 @@ class ScanYara(strelka.Scanner):
                 custom_yara_matches = compiled_custom_yara.match(data=data)
                 yara_matches.extend(custom_yara_matches)
                 for match in yara_matches:
-                    self.event['matches'].append(match.rule)
-                    #self.event['matches'].append({
-                    #    'rule': match.rule,
-                    #})
+                    event = { 'name': match.rule, 'tags': [], 'meta': {} }
                     if match.tags:
                         for tag in match.tags:
                             if not tag in self.event['tags']:
-                                self.event['tags'].append(tag)
+                                event['tags'].append(tag)
 
                     for k, v in match.meta.items():
                         if meta and k not in meta:
                             continue
 
-                        self.event['meta'].append({
-                            'rule': match.rule,
-                            'identifier': k,
-                            'value': v,
-                        })
+                        event['meta'][k] = v
+
+                    self.event['matches'].append(event)
 
         except (yara.Error, yara.TimeoutError):
             self.flags.append('scanning_error')
