@@ -154,7 +154,6 @@ func ScanFile(client strelka.FrontendClient, timeout time.Duration, req structs.
 			log.Println("failed to read YARA file")
 			return
 		}
-		log.Println(string(YARABuf))
 	}
 
 	buffer := make([]byte, req.Chunk)
