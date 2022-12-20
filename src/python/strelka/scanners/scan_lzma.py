@@ -6,7 +6,7 @@ from strelka import strelka
 
 class ScanLzma(strelka.Scanner):
     """Decompresses LZMA files."""
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         try:
             with io.BytesIO(data) as lzma_io:
                 with lzma.LZMAFile(filename=lzma_io) as lzma_obj:

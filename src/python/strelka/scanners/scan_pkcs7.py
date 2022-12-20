@@ -7,7 +7,7 @@ from strelka import strelka
 
 class ScanPkcs7(strelka.Scanner):
     """Extracts files from PKCS7 certificate files."""
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         tmp_directory = options.get('tmp_directory', '/tmp/')
 
         self.event['total'] = {'certificates': 0, 'extracted': 0}

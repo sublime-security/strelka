@@ -5,7 +5,7 @@ from strelka import strelka
 
 class ScanEmail(strelka.Scanner):
     """Collects metadata and extract files from email messages."""
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         headers = options.get('headers', [])
 
         self.event['total'] = {'parts': 0, 'extracted': 0}

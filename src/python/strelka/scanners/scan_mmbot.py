@@ -14,7 +14,7 @@ class ScanMmbot(strelka.Scanner):
         server: Network address and network port of the mmrpc service.
             Defaults to strelka_mmrpc_1:33907.
     """
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         server = options.get('server', 'strelka_mmrpc_1:33907')
 
         with grpc.insecure_channel(server) as channel:

@@ -12,7 +12,7 @@ class ScanJavascript(strelka.Scanner):
             deobfuscated.
             Defaults to True.
     """
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         beautify = options.get('beautify', True)
 
         self.event.setdefault('tokens', [])

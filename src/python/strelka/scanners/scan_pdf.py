@@ -17,7 +17,7 @@ class ScanPdf(strelka.Scanner):
     def init(self):
         fitz.TOOLS.mupdf_display_errors(False)
 
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         extract_text = options.get("extract_text", False)
         file_limit = options.get("limit", 2000)
 

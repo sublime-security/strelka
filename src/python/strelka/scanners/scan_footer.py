@@ -8,7 +8,7 @@ class ScanFooter(strelka.Scanner):
         length: Number of footer characters to log as metadata.
             Defaults to 50.
     """
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         length = options.get('length', 50)
 
         self.event['footer'] = data[-length:]

@@ -14,7 +14,7 @@ class ScanVb(strelka.Scanner):
     def init(self):
         self.lexer = lexers.get_lexer_by_name('vbnet')
 
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         highlight = pygments.highlight(
             data,
             self.lexer,

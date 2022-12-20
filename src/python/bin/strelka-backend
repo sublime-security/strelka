@@ -200,9 +200,10 @@ class Backend(object):
 
                         try:
                             name = scanner['name']
+                            options = scanner.get('options', {})
 
                             if name == 'ScanYara':
-                                custom_fields['source'] = self.yaraData
+                                options['source'] = self.yaraData
 
                             und_name = inflection.underscore(name)
                             scanner_import = f'strelka.scanners.{und_name}'
@@ -210,14 +211,12 @@ class Backend(object):
                             if und_name not in self.scanner_cache:
                                 attr = getattr(module, name)(self.backend_cfg, self.coordinator)
                                 self.scanner_cache[und_name] = attr
-                            options = scanner.get('options', {})
                             plugin = self.scanner_cache[und_name]
                             (f, s) = plugin.scan_wrapper(
                                 data,
                                 file,
                                 options,
                                 expire_at,
-                                custom_fields,
                             )
                             files.extend(f)
 

@@ -23,7 +23,7 @@ class ScanYara(strelka.Scanner):
     def init(self):
         self.compiled_yara = None
 
-    def scan(self, data, file, options, expire_at, custom_fields={}):
+    def scan(self, data, file, options, expire_at):
         location = options.get('location', '/etc/yara/')
 
         meta = options.get('meta', [])
@@ -33,8 +33,8 @@ class ScanYara(strelka.Scanner):
             meta.append('description')
 
         compiled_custom_yara = None
-        if custom_fields.get('source'):
-            compiled_custom_yara = yara.compile(source=custom_fields['source'])
+        if options.get('source'):
+            compiled_custom_yara = yara.compile(source=options['source'])
 
         try:
             if self.compiled_yara is None:

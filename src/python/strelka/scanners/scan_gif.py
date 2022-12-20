@@ -6,7 +6,7 @@ class ScanGif(strelka.Scanner):
 
     This scanner extracts data that is inserted past the GIF trailer.
     """
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         if not data.endswith(b'\x00\x3b'):
             trailer_index = data.rfind(b'\x00\x3b')
             if trailer_index == -1:

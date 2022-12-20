@@ -17,7 +17,7 @@ class ScanCapa(strelka.Scanner):
             Defaults to '/etc/capa/'
     """
 
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         tmp_directory = options.get('tmp_directory', '/tmp/')
         location = options.get('location', '/etc/capa/')
 

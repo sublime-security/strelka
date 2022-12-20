@@ -16,7 +16,7 @@ class ScanDocx(strelka.Scanner):
             Defaults to False.
     """
 
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         extract_text = options.get('extract_text', False)
         with io.BytesIO(data) as docx_io:
 

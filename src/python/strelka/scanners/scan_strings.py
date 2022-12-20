@@ -18,7 +18,7 @@ class ScanStrings(strelka.Scanner):
     def init(self):
         self.strings_regex = re.compile(br'[^\x00-\x1F\x7F-\xFF]{4,}')
 
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         limit = options.get('limit', 0)
 
         strings = self.strings_regex.findall(data)

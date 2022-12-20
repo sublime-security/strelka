@@ -12,7 +12,7 @@ class ScanHtml(strelka.Scanner):
         parser: Sets the HTML parser used during scanning.
             Defaults to 'html.parser'.
     """
-    def scan(self, data, file, options, expire_at, _):
+    scan(self, data, file, options, expire_at):
         parser = options.get('parser', 'html.parser')
 
         self.event['total'] = {

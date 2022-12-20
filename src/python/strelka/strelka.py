@@ -99,8 +99,7 @@ class Scanner(object):
              data,
              file,
              options,
-             expire_at,
-             custom_fields={}):
+             expire_at):
         """Overrideable scan method.
 
         Args:
@@ -115,8 +114,7 @@ class Scanner(object):
                      data,
                      file,
                      options,
-                     expire_at,
-                     custom_fields={}):
+                     expire_at):
         """Sets up scan attributes and calls scan method.
 
         Scanning code is wrapped in try/except for error handling.
@@ -147,7 +145,7 @@ class Scanner(object):
         try:
             with interruptingcow.timeout(self.scanner_timeout,
                                          ScannerTimeout):
-                self.scan(data, file, options, expire_at, custom_fields)
+                self.scan(data, file, options, expire_at)
 
         except ScannerTimeout:
             self.flags.append('timed_out')
