@@ -221,9 +221,6 @@ class Backend(object):
                             )
                             files.extend(f)
 
-                            # this is scan output
-                            logging.info(s)
-
                             scan = {
                                 **scan,
                                 **s,
