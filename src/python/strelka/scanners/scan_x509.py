@@ -15,7 +15,7 @@ class ScanX509(strelka.Scanner):
             scanned. Must be either 'der' or 'pem'.
             Defaults to empty string.
     """
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         file_type = options.get('type', '')
 
         if file_type == 'der':

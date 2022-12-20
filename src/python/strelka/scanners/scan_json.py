@@ -5,7 +5,7 @@ from strelka import strelka
 
 class ScanJson(strelka.Scanner):
     """Collects keys from JSON files."""
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         self.event.setdefault('keys', [])
 
         try:

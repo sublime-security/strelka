@@ -5,7 +5,7 @@ from strelka import strelka
 
 class ScanZlib(strelka.Scanner):
     """Decompresses zlib files."""
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         decompressed = zlib.decompress(data)
         self.event["size"] = len(decompressed)
 

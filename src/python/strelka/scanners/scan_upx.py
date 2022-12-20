@@ -12,7 +12,7 @@ class ScanUpx(strelka.Scanner):
         tmp_directory: Location where tempfile writes temporary files.
             Defaults to '/tmp/'.
     """
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         tmp_directory = options.get('tmp_directory', '/tmp/')
 
         with tempfile.NamedTemporaryFile(dir=tmp_directory) as tmp_data:

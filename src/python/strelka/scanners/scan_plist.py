@@ -12,7 +12,7 @@ class ScanPlist(strelka.Scanner):
         keys: plist key values to log in the event.
             Defaults to all.
     """
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         keys = options.get('keys', [])
 
         try:

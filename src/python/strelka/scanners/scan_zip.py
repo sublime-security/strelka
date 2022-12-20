@@ -14,7 +14,7 @@ class ScanZip(strelka.Scanner):
             Defaults to 1000.
     """
 
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         file_limit = options.get('limit', 1000)
 
         self.event['total'] = {'files': 0, 'extracted': 0}

@@ -15,7 +15,7 @@ class ScanFloss(strelka.Scanner):
             Defaults to 100.
     """
 
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         tmp_directory = options.get('tmp_directory', '/tmp/')
         limit = options.get('limit', 100)
 

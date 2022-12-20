@@ -15,7 +15,7 @@ class ScanOcr(strelka.Scanner):
         tmp_directory: Location where tempfile writes temporary files.
             Defaults to '/tmp/'.
     """
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         extract_text = options.get('extract_text', False)
         tmp_directory = options.get('tmp_directory', '/tmp/')
 

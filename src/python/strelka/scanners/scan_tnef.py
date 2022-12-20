@@ -5,7 +5,7 @@ from strelka import strelka
 
 class ScanTnef(strelka.Scanner):
     """Collects metadata and extract files from TNEF files."""
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         self.event['total'] = {'attachments': 0, 'extracted': 0}
         self.event.setdefault('object_names', [])
 

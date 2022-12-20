@@ -10,7 +10,7 @@ class ScanQr(strelka.Scanner):
     """
     Collects QR code metadata from image files.
     """
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         try:
             URL_REGEX = '^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+\.[a-z]+(\/[a-zA-Z0-9#]+\/?)*'
             barcodes = decode(Image.open(io.BytesIO(data)))

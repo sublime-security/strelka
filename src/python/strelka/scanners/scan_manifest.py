@@ -6,7 +6,7 @@ class ScanManifest(strelka.Scanner):
     """Parses browser extension's  manifest.json.
     """
 
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         try:
             jsondata = json.loads(data)
             required_keys = ['name', 'manifest_version', 'version']

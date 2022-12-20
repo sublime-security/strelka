@@ -36,7 +36,7 @@ class ScanCuckoo(strelka.Scanner):
         self.password = None
         self.auth_check = False
 
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         url = options.get('url', None)
         priority = options.get('priority', 3)
         timeout = options.get('timeout', 10)

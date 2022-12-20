@@ -5,7 +5,7 @@ from strelka import strelka
 
 class ScanJarManifest(strelka.Scanner):
     """Collects metadata from JAR manifest files."""
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         headers = options.get('headers', [])
 
         manifest = b'\n'.join(data.splitlines()).rstrip(b'\n')

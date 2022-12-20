@@ -187,7 +187,7 @@ PROTECTIONS = {
 
 class ScanMacho(strelka.Scanner):
     """Collects metadata from Mach-O files."""
-    scan(self, data, file, options, expire_at):
+    def scan(self, data, file, options, expire_at):
         tmp_directory = options.get('tmp_directory', '/tmp/')
 
         macho = MachO.parse(raw=data, config=MachO.ParserConfig.deep)
