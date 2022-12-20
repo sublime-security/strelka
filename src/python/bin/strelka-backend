@@ -196,8 +196,6 @@ class Backend(object):
                     scan = {}
 
                     for scanner in scanner_list:
-                        custom_fields = {}
-
                         try:
                             name = scanner['name']
                             options = scanner.get('options', {})
