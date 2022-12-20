@@ -14,7 +14,7 @@ class ScanXml(strelka.Scanner):
             as metadata.
             Defaults to empty list.
     """
-    def scan(self, data, file, options, expire_at, custom_fields):
+    def scan(self, data, file, options, expire_at):
         xml_args = {
             'extract_tags': options.get('extract_tags', []),
             'metadata_tags': options.get('metadata_tags', []),
