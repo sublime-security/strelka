@@ -43,6 +43,7 @@ class StrelkaFrontend:
                                       client='strelka-python',
                                       source=self.source,
                                       gatekeeper=self.gatekeeper)
+	attributes = strelka_pb2.Attributes(filename=filename)
         with open(filename, 'rb') as f:
             while True:
                 chunk = f.read(self.chunk)
