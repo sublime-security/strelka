@@ -32,7 +32,7 @@ class Backend(object):
         self.backend_cfg = backend_cfg
         self.coordinator = coordinator
         self.limits = backend_cfg.get('limits')
-        self.yaraData = b''
+        self.yaraData = ''
 
         scanners = backend_cfg.get('scanners')
         if isinstance(scanners, str):
@@ -110,12 +110,11 @@ class Backend(object):
         """Tastes file data with libmagic."""
         return [self.compiled_magic.from_buffer(data)]
 
-    def taste_yara(self, data, yaraData):
+    def taste_yara(self, data):
         """Tastes file data with YARA."""
         # TODO: cache compiled yara and make this more efficient in general
         compiled_custom_yara = b''
-        if yaraData:
-            self.yaraData = yaraData.decode()
+        if self.yaraData:
             compiled_custom_yara = yara.compile(source=self.yaraData)
         encoded_whitespace = string.whitespace.encode()
         stripped_data = data.lstrip(encoded_whitespace)
@@ -148,8 +147,10 @@ class Backend(object):
                         if ypop is not None:
                             yaraData += ypop
 
+                    self.yaraData = yaraData.decode()
+
                     file.add_flavors({'mime': self.taste_mime(data)})
-                    file.add_flavors({'yara': self.taste_yara(data, yaraData)})
+                    file.add_flavors({'yara': self.taste_yara(data)})
                     flavors = (
                         file.flavors.get('external', [])
                         + file.flavors.get('mime', [])
