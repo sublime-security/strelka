@@ -136,6 +136,10 @@ class Backend(object):
                             break
                         data += pop
 
+                        # We use the root_id to locate custom yara for this document,
+                        # since both the parent document and all child documents will
+                        # take this path, and we wish to evaluate each against the
+                        # same set of yara rules.
                         yaraData = self.coordinator.get(f'yara:{root_id}')
 
                     file.add_flavors({'mime': self.taste_mime(data)})
