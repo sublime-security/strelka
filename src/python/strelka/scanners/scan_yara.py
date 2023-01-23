@@ -1,9 +1,39 @@
+import copy
 import glob
+import hashlib
 import os
 
 import yara
 
 from strelka import strelka
+
+EXTERNAL_VARS = {
+    # BinaryAlert/THOR/Loki
+    'extension': '',
+    'filename': '',
+    'filepath': '',
+    'filetype': '',
+    # THOR/Loki
+    'timezone': '',
+    'language': '',
+    'owner': '',
+    'group': '',
+    'filemode': '',
+    # Livehunt
+    'file_name': '',
+    'file_type': '',
+    'imphash': '',
+    'md5': '',
+    'new_file': '',
+    'positives': '',
+    'sha1': '',
+    'sha256': '',
+    'signatures': '',
+    'ssdeep': '',
+    'submissions': '',
+    'tags': '',
+    'vhash': '',
+}
 
 
 class ScanYara(strelka.Scanner):
@@ -32,11 +62,24 @@ class ScanYara(strelka.Scanner):
         if 'description' not in meta:
             meta.append('description')
 
+        # Support some common external variables
+        externals = copy.copy(EXTERNAL_VARS)
+        externals['filename'] = file.name
+        externals['file_name'] = file.name
+        extension = file.name.split('.')[-1]
+        if extension:
+            externals['extension'] = '.' + file.name.split('.')[-1]
+            externals['filetype'] = extension
+            externals['file_type'] = extension
+        externals['md5'] = hashlib.md5(data).hexdigest()
+        externals['sha1'] = hashlib.sha1(data).hexdigest()
+        externals['sha256'] = hashlib.sha256(data).hexdigest()
+
         compiled_custom_yara = None
         if options.get('source'):
             # custom yara was provided - use it to evaluate this file
             try:
-                compiled_custom_yara = yara.compile(source=options['source'])
+                compiled_custom_yara = yara.compile(source=options['source'], externals=externals)
             except (yara.Error, yara.SyntaxError):
                 self.flags.append('compiling_error')
 
@@ -46,9 +89,9 @@ class ScanYara(strelka.Scanner):
                     globbed_yara_paths = glob.iglob(f'{location}/**/*.yar*', recursive=True)
                     yara_filepaths = {f'namespace_{i}':entry for (i, entry) in enumerate(globbed_yara_paths)}
                     if yara_filepaths:
-                        self.compiled_yara = yara.compile(filepaths=yara_filepaths)
+                        self.compiled_yara = yara.compile(filepaths=yara_filepaths, externals=externals)
                 else:
-                    self.compiled_yara = yara.compile(filepath=location)
+                    self.compiled_yara = yara.compile(filepath=location, externals=externals)
 
         except (yara.Error, yara.SyntaxError):
             self.flags.append('compiling_error')
