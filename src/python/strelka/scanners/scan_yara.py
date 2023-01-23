@@ -5,36 +5,7 @@ import os
 
 import yara
 
-from strelka import strelka
-
-EXTERNAL_VARS = {
-    # BinaryAlert/THOR/Loki
-    'extension': '',
-    'filename': '',
-    'filepath': '',
-    'filetype': '',
-    # THOR/Loki
-    'timezone': '',
-    'language': '',
-    'owner': '',
-    'group': '',
-    'filemode': '',
-    # Livehunt
-    'file_name': '',
-    'file_type': '',
-    'imphash': '',
-    'md5': '',
-    'new_file': '',
-    'positives': '',
-    'sha1': '',
-    'sha256': '',
-    'signatures': '',
-    'ssdeep': '',
-    'submissions': '',
-    'tags': '',
-    'vhash': '',
-}
-
+from strelka import strelka, yara_extern
 
 class ScanYara(strelka.Scanner):
     """Scans files with YARA.
@@ -63,7 +34,7 @@ class ScanYara(strelka.Scanner):
             meta.append('description')
 
         # Support some common external variables
-        externals = copy.copy(EXTERNAL_VARS)
+        externals = copy.copy(yara_extern.EXTERNAL_VARS)
         externals['filename'] = file.name
         externals['file_name'] = file.name
         extension = file.name.split('.')[-1]
