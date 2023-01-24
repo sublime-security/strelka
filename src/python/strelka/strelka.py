@@ -86,6 +86,7 @@ class Scanner(object):
         self.key = inflection.underscore(self.name.replace('Scan', ''))
         self.scanner_timeout = backend_cfg.get('limits').get('scanner')
         self.coordinator = coordinator
+        self.errors = []
         self.init()
 
     def init(self):
@@ -155,6 +156,9 @@ class Scanner(object):
             logging.exception(f'{self.name}: exception while scanning'
                               f' uid {file.uid} (see traceback below)')
             self.flags.append('uncaught_exception')
+
+        print('errors')
+        print(self.errors)
 
         self.event = {
             **{'elapsed': round(time.time() - start, 6)},
