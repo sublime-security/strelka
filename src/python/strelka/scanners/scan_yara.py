@@ -1,10 +1,11 @@
+import copy
 import glob
+import hashlib
 import os
 
 import yara
 
-from strelka import strelka
-
+from strelka import strelka, yara_extern
 
 class ScanYara(strelka.Scanner):
     """Scans files with YARA.
@@ -32,13 +33,23 @@ class ScanYara(strelka.Scanner):
         if 'description' not in meta:
             meta.append('description')
 
-        compiled_custom_yara = None
-        if options.get('source'):
+        compiled_custom_yara = []
+        if options.get('compiled_custom_yara'):
             # custom yara was provided - use it to evaluate this file
-            try:
-                compiled_custom_yara = yara.compile(source=options['source'])
-            except (yara.Error, yara.SyntaxError):
-                self.flags.append('compiling_error')
+            compiled_custom_yara.extend(options['compiled_custom_yara'])
+
+        # Support some common external variables
+        externals = copy.copy(yara_extern.EXTERNAL_VARS)
+        externals['filename'] = file.name
+        externals['file_name'] = file.name
+        extension = file.name.split('.')[-1]
+        if extension:
+            externals['extension'] = '.' + file.name.split('.')[-1]
+            externals['filetype'] = extension
+            externals['file_type'] = extension
+        externals['md5'] = hashlib.md5(data).hexdigest()
+        externals['sha1'] = hashlib.sha1(data).hexdigest()
+        externals['sha256'] = hashlib.sha256(data).hexdigest()
 
         try:
             if self.compiled_yara is None and os.path.exists(location):
@@ -46,9 +57,9 @@ class ScanYara(strelka.Scanner):
                     globbed_yara_paths = glob.iglob(f'{location}/**/*.yar*', recursive=True)
                     yara_filepaths = {f'namespace_{i}':entry for (i, entry) in enumerate(globbed_yara_paths)}
                     if yara_filepaths:
-                        self.compiled_yara = yara.compile(filepaths=yara_filepaths)
+                        self.compiled_yara = yara.compile(filepaths=yara_filepaths, externals=externals)
                 else:
-                    self.compiled_yara = yara.compile(filepath=location)
+                    self.compiled_yara = yara.compile(filepath=location, externals=externals)
 
         except (yara.Error, yara.SyntaxError):
             self.flags.append('compiling_error')
@@ -61,15 +72,14 @@ class ScanYara(strelka.Scanner):
             if self.compiled_yara is not None:
                 yara_matches = self.compiled_yara.match(data=data)
 
-            if compiled_custom_yara is not None:
-                custom_yara_matches = compiled_custom_yara.match(data=data)
-                yara_matches.extend(custom_yara_matches)
+            for custom_yara in compiled_custom_yara:
+                yara_matches.extend(custom_yara.match(data=data))
 
             for match in yara_matches:
                 event = { 'name': match.rule, 'tags': [], 'meta': {} }
                 if match.tags:
                     for tag in match.tags:
-                        if not tag in self.event['tags']:
+                        if not tag in event['tags']:
                             event['tags'].append(tag)
 
                 for k, v in match.meta.items():
