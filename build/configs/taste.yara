@@ -224,14 +224,6 @@ rule olecf_file {
         uint32(0) == 0xE011CFD0 and uint32(4) == 0xE11AB1A1
 }
 
-rule ooxml_file {
-    meta:
-        description = "Microsoft Office Open XML Format"
-        type  = "document"
-    condition:
-        uint32(0) == 0x04034B50 and uint32(4) == 0x00060014
-}
-
 rule onenote_file {
     meta:
         author = "Aiden Mitchell"
@@ -241,6 +233,14 @@ rule onenote_file {
         $a = { E4 52 5C 7B 8C D8 A7 4D AE B1 53 78 D0 29 96 D3 }
     condition:
         $a at 0
+}
+
+rule ooxml_file {
+    meta:
+        description = "Microsoft Office Open XML Format"
+        type  = "document"
+    condition:
+        uint32(0) == 0x04034B50 and uint32(4) == 0x00060014
 }
 
 rule pdf_file {
