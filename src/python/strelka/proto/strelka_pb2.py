@@ -13,7 +13,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rstrelka.proto\"I\n\x07Request\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06\x63lient\x18\x02 \x01(\t\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x12\n\ngatekeeper\x18\x04 \x01(\x08\"\x92\x01\n\nAttributes\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12+\n\x08metadata\x18\x02 \x03(\x0b\x32\x19.Attributes.MetadataEntry\x12\x14\n\x0cyaraFilename\x18\x03 \x01(\t\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"m\n\x0fScanFileRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x19\n\x07request\x18\x02 \x01(\x0b\x32\x08.Request\x12\x1f\n\nattributes\x18\x03 \x01(\x0b\x32\x0b.Attributes\x12\x10\n\x08yaraData\x18\x04 \x01(\x0c\")\n\x0cScanResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05\x65vent\x18\x02 \x01(\t2=\n\x08\x46rontend\x12\x31\n\x08ScanFile\x12\x10.ScanFileRequest\x1a\r.ScanResponse\"\x00(\x01\x30\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\rstrelka.proto\"I\n\x07Request\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06\x63lient\x18\x02 \x01(\t\x12\x0e\n\x06source\x18\x03 \x01(\t\x12\x12\n\ngatekeeper\x18\x04 \x01(\x08\"\x92\x01\n\nAttributes\x12\x10\n\x08\x66ilename\x18\x01 \x01(\t\x12+\n\x08metadata\x18\x02 \x03(\x0b\x32\x19.Attributes.MetadataEntry\x12\x14\n\x0cyaraFilename\x18\x03 \x01(\t\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\":\n\x08YaraData\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x10\n\x08\x66ilename\x18\x03 \x01(\t\"C\n\tYaraError\x12\x0e\n\x06source\x18\x01 \x01(\t\x12\x10\n\x08\x66ilename\x18\x02 \x01(\t\x12\x14\n\x0c\x65rrorMessage\x18\x03 \x01(\t\"8\n\x0fSyncYaraRequest\x12\x17\n\x04\x64\x61ta\x18\x01 \x03(\x0b\x32\t.YaraData\x12\x0c\n\x04hash\x18\x02 \x01(\x0c\"L\n\x10SyncYaraResponse\x12\x0e\n\x06synced\x18\x01 \x01(\x05\x12\x0c\n\x04hash\x18\x02 \x01(\x0c\x12\x1a\n\x06\x65rrors\x18\x03 \x03(\x0b\x32\n.YaraError\"\'\n\x17ShouldUpdateYaraRequest\x12\x0c\n\x04hash\x18\x01 \x01(\x0c\"&\n\x18ShouldUpdateYaraResponse\x12\n\n\x02ok\x18\x01 \x01(\x08\"[\n\x0fScanFileRequest\x12\x0c\n\x04\x64\x61ta\x18\x01 \x01(\x0c\x12\x19\n\x07request\x18\x02 \x01(\x0b\x32\x08.Request\x12\x1f\n\nattributes\x18\x03 \x01(\x0b\x32\x0b.Attributes\")\n\x0cScanResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05\x65vent\x18\x02 \x01(\t2\xc3\x01\n\x08\x46rontend\x12\x31\n\x08ScanFile\x12\x10.ScanFileRequest\x1a\r.ScanResponse\"\x00(\x01\x30\x01\x12\x35\n\x08SyncYara\x12\x10.SyncYaraRequest\x1a\x11.SyncYaraResponse\"\x00(\x01\x30\x01\x12M\n\x10ShouldUpdateYara\x12\x18.ShouldUpdateYaraRequest\x1a\x19.ShouldUpdateYaraResponse\"\x00(\x01\x30\x01\x62\x06proto3')
 
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, globals())
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'strelka_pb2', globals())
@@ -28,10 +28,22 @@ if _descriptor._USE_C_DESCRIPTORS == False:
   _ATTRIBUTES._serialized_end=239
   _ATTRIBUTES_METADATAENTRY._serialized_start=192
   _ATTRIBUTES_METADATAENTRY._serialized_end=239
-  _SCANFILEREQUEST._serialized_start=241
-  _SCANFILEREQUEST._serialized_end=350
-  _SCANRESPONSE._serialized_start=352
-  _SCANRESPONSE._serialized_end=393
-  _FRONTEND._serialized_start=395
-  _FRONTEND._serialized_end=456
+  _YARADATA._serialized_start=241
+  _YARADATA._serialized_end=299
+  _YARAERROR._serialized_start=301
+  _YARAERROR._serialized_end=368
+  _SYNCYARAREQUEST._serialized_start=370
+  _SYNCYARAREQUEST._serialized_end=426
+  _SYNCYARARESPONSE._serialized_start=428
+  _SYNCYARARESPONSE._serialized_end=504
+  _SHOULDUPDATEYARAREQUEST._serialized_start=506
+  _SHOULDUPDATEYARAREQUEST._serialized_end=545
+  _SHOULDUPDATEYARARESPONSE._serialized_start=547
+  _SHOULDUPDATEYARARESPONSE._serialized_end=585
+  _SCANFILEREQUEST._serialized_start=587
+  _SCANFILEREQUEST._serialized_end=678
+  _SCANRESPONSE._serialized_start=680
+  _SCANRESPONSE._serialized_end=721
+  _FRONTEND._serialized_start=724
+  _FRONTEND._serialized_end=919
 # @@protoc_insertion_point(module_scope)

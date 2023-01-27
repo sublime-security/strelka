@@ -2,6 +2,8 @@ syntax = "proto3";
 
 service Frontend {
   rpc ScanFile(stream ScanFileRequest) returns (stream ScanResponse) {}
+  rpc SyncYara(stream SyncYaraRequest) returns (stream SyncYaraResponse) {}
+  rpc ShouldUpdateYara(stream ShouldUpdateYaraRequest) returns (stream ShouldUpdateYaraResponse) {}
 }
 
 message Request {
@@ -17,11 +19,45 @@ message Attributes {
   string yaraFilename = 3;
 }
 
+message YaraData {
+  string data = 1;
+  string source = 2; // feed id or name
+  string filename = 3;
+}
+
+message YaraError {
+  string source = 1; // feed id or name
+  string filename = 2;
+  string errorMessage = 3;
+}
+
+message SyncYaraRequest {
+  repeated YaraData data = 1;
+  bytes hash = 2; // just for error checking
+}
+
+message SyncYaraResponse {
+  int32 synced = 1; // number of files synced
+  bytes hash = 2; // just for error checking
+  repeated YaraError errors = 3;
+}
+
+// strelka computes hash of files that compiled, stores in redis
+// mantis computes hash before sending scanfilerequest, then checks with
+// strelka to determine if yara needs to be transmitted (in chunks)
+
+message ShouldUpdateYaraRequest {
+  bytes hash = 1;
+}
+
+message ShouldUpdateYaraResponse {
+  bool ok = 1;
+}
+
 message ScanFileRequest {
   bytes data = 1; // required
   Request request = 2;
   Attributes attributes = 3;
-  bytes yaraData = 4;
 }
 
 message ScanResponse {
