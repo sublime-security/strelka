@@ -230,7 +230,7 @@ rule onenote_file {
         description = "Microsoft Onenote File"
         type = "document"
     strings:
-        $a = { E4 52 5C 7B 8C D8 A7 4D AE B1 53 78 D0 29 96 D3 }
+        $a = { E4 52 5C 7B 8C D8 A7 4D AE B1 53 78 D0 29 96 D3 } // .one guidFileType
     condition:
         $a at 0
 }
