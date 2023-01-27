@@ -78,27 +78,25 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		if attr == nil {
 			attr = in.Attributes
 		}
-
 		if req == nil {
 			req = in.Request
 		}
 
-		p := s.coordinator.cli.Pipeline()
-
-		if len(in.Data) > 0 {
-			hash.Write(in.Data)
-			p.RPush(stream.Context(), keyd, in.Data)
-		}
-
+		hash.Write(in.Data)
 		if len(in.YaraData) > 0 {
 			hash.Write(in.YaraData)
-			// We're using a different pattern for YARA data, because we want to ensure the key stays populated
-			// for all exploded sub-documents so the YARA can be evaluated against them too.
-			p.Append(stream.Context(), keyy, string(in.YaraData))
 		}
 
-		p.ExpireAt(stream.Context(), keyd, deadline) // Make sure in.Data expiry keeps up with in.YaraData expiry
-		p.ExpireAt(stream.Context(), keyy, deadline) // Make sure in.YaraData expiry keeps up with in.Data expiry
+		p := s.coordinator.cli.Pipeline()
+		p.RPush(stream.Context(), keyd, in.Data)
+		p.ExpireAt(stream.Context(), keyd, deadline)
+
+		// We're using a different pattern for YARA data, because (unlike the file data) it's not chunked.
+		// Additionally, we want to ensure the key stays populated for all exploded sub-documents so that
+		// the YARA can be evaluated against them too. Using the 'rpush/rpop' pattern would be cumbersome
+		// because we'd have to pass the yara data through the scanners and back into the queue for every
+		// sub-document.
+		p.SetNX(stream.Context(), keyy, in.YaraData, time.Until(deadline))
 
 		if _, err := p.Exec(stream.Context()); err != nil {
 			return err
