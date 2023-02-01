@@ -63,12 +63,12 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 	id := uuid.New().String()
 	keyd := fmt.Sprintf("data:%v", id)
 	keye := fmt.Sprintf("event:%v", id)
+	keyy := fmt.Sprintf("yara:%v", id)
 	keyo := fmt.Sprintf("org_id:%s", id)
 
 	var attr *strelka.Attributes
 	var req *strelka.Request
 
-	p := s.coordinator.cli.Pipeline()
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
@@ -86,13 +86,28 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			req = in.Request
 		}
 
+		p := s.coordinator.cli.Pipeline()
+
 		if attr.OrgID != "" {
 			p.Set(stream.Context(), keyo, attr.OrgID, time.Until(deadline))
 		}
 
+		p.RPush(stream.Context(), keyd, in.Data)
+		p.ExpireAt(stream.Context(), keyd, deadline)
+
 		if len(in.Data) > 0 {
 			hash.Write(in.Data)
 			p.RPush(stream.Context(), keyd, in.Data)
+		}
+
+		if len(in.YaraData) > 0 {
+			hash.Write(in.YaraData)
+			// We're using a different pattern for YARA data, because (unlike the file data) it's not chunked.
+			// Additionally, we want to ensure the key stays populated for all exploded sub-documents so that
+			// the YARA can be evaluated against them too. Using the 'rpush/rpop' pattern would be cumbersome
+			// because we'd have to pass the yara data through the scanners and back into the queue for every
+			// sub-document.
+			p.SetNX(stream.Context(), keyy, in.YaraData, time.Until(deadline)) // backcompat
 		}
 
 		if _, err := p.Exec(stream.Context()); err != nil {
@@ -232,8 +247,6 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 	}
 
 	id := uuid.New().String()
-	p := s.coordinator.cli.Pipeline()
-
 	keyYaraCompile := fmt.Sprintf("yara:compile:%s", id)
 	keyYaraCompileDone := fmt.Sprintf("yara:compile:done:%s", id)
 
@@ -250,6 +263,7 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 			req = in.Request
 		}
 
+		p := s.coordinator.cli.Pipeline()
 		if len(in.Data) > 0 {
 			// Send for compilation
 			p.RPush(stream.Context(), keyYaraCompile, in.Data)
@@ -328,14 +342,12 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 	}
 
 	id := uuid.New().String()
-	p := s.coordinator.cli.Pipeline()
 
 	var keyYaraHash string
 	keyOrgID := fmt.Sprintf("org_id:%s", id)
 	keyYaraSync := fmt.Sprintf("yara:compile_and_sync:%s", id)
 	keyYaraSyncDone := fmt.Sprintf("yara:compile_and_sync:done:%s", id)
 
-	log.Println("sync yara")
 	for {
 		in, err := stream.Recv()
 		if err == io.EOF {
@@ -353,6 +365,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 			orgID = in.OrgID
 		}
 
+		p := s.coordinator.cli.Pipeline()
 		keyYaraHash = fmt.Sprintf("yara:hash:%s", orgID)
 		p.Set(stream.Context(), keyOrgID, orgID, time.Until(deadline))
 

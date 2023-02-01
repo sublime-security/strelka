@@ -246,11 +246,18 @@ class Backend(object):
                         return
 
                     data = b''
+                    legacy_yara_data = b''
                     while 1:
                         pop = self.coordinator.lpop(f'data:{file.pointer}')
                         if pop is None:
                             break
                         data += pop
+
+                        # We use the root_id to locate custom yara for this document,
+                        # since both the parent document and all child documents will
+                        # take this path, and we wish to evaluate each against the
+                        # same set of yara rules.
+                        yaraData = self.coordinator.get(f'yara:{root_id}') # backcompat
 
                     file.add_flavors({'mime': self.taste_mime(data)})
                     file.add_flavors({'yara': self.taste_yara(data)})
@@ -321,6 +328,9 @@ class Backend(object):
                                     yaraDataC = yara.load(file=buf)
                                     compiled_custom_yara.append(yaraDataC)
                                 options['compiled_custom_yara'] = compiled_custom_yara
+
+                                if legacy_yara_data: # backcompat
+                                    options['source'] = legacy_yara_data.decode()
 
                             und_name = inflection.underscore(name)
                             scanner_import = f'strelka.scanners.{und_name}'

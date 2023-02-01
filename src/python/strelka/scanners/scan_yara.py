@@ -38,6 +38,12 @@ class ScanYara(strelka.Scanner):
             # custom yara was provided - use it to evaluate this file
             compiled_custom_yara.extend(options['compiled_custom_yara'])
 
+        if options.get('source') and len(compiled_custom_yara) == 0:
+            try:
+                compiled_custom_yara = yara.compile(source=options['source'])
+            except (yara.Error, yara.SyntaxError):
+                self.flags.append('compiling_error')
+
         # Support some common external variables
         externals = copy.copy(yara_extern.EXTERNAL_VARS)
         externals['filename'] = file.name
