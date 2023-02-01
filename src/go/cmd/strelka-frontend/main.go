@@ -70,12 +70,16 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 	var req *strelka.Request
 
 	for {
+		if err := stream.Context().Err(); err != nil {
+			return fmt.Errorf("context closed: %w", err)
+		}
+
 		in, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("receive stream: %w", err)
 		}
 
 		if attr == nil {
@@ -111,7 +115,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		}
 
 		if _, err := p.Exec(stream.Context()); err != nil {
-			return err
+			return fmt.Errorf("redis exec: %w", err)
 		}
 	}
 
@@ -137,12 +141,12 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		if len(lrange) > 0 {
 			for _, e := range lrange {
 				if err := json.Unmarshal([]byte(e), &em); err != nil {
-					return err
+					return fmt.Errorf("unmarshaling: %w", err)
 				}
 
 				event, err := json.Marshal(em)
 				if err != nil {
-					return err
+					return fmt.Errorf("marshaling: %w", err)
 				}
 
 				resp := &strelka.ScanResponse{
@@ -152,12 +156,12 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 				s.responses <- resp
 				if err := stream.Send(resp); err != nil {
-					return err
+					return fmt.Errorf("send stream: %w", err)
 				}
 			}
 
 			if err := s.coordinator.cli.Del(stream.Context(), keyd).Err(); err != nil {
-				return err
+				return fmt.Errorf("del key: %w", err)
 			}
 
 			return nil
@@ -172,7 +176,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			Member: id,
 		},
 	).Err(); err != nil {
-		return err
+		return fmt.Errorf("sending task: %w", err)
 	}
 
 	var tx *redis.Pipeliner
@@ -184,7 +188,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 	for {
 		if err := stream.Context().Err(); err != nil {
-			return err
+			return fmt.Errorf("context closed: %w", err)
 		}
 
 		res, err := s.coordinator.cli.BLPop(stream.Context(), 5*time.Second, keye).Result()
@@ -197,7 +201,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		}
 		// first element will be the name of queue/event, second element is event itself
 		if len(res) != 2 {
-			return fmt.Errorf("unexpected result length")
+			return fmt.Errorf("unexpected result length: %d", len(res))
 		}
 
 		lpop := res[1]
@@ -209,12 +213,12 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			(*tx).RPush(stream.Context(), sha, lpop)
 		}
 		if err := json.Unmarshal([]byte(lpop), &em); err != nil {
-			return err
+			return fmt.Errorf("unmarshaling: %w", err)
 		}
 
 		event, err := json.Marshal(em)
 		if err != nil {
-			return err
+			return fmt.Errorf("marshaling: %w", err)
 		}
 
 		resp := &strelka.ScanResponse{
@@ -224,14 +228,14 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 		s.responses <- resp
 		if err := stream.Send(resp); err != nil {
-			return err
+			return fmt.Errorf("send stream: %w", err)
 		}
 	}
 
 	if tx != nil {
 		(*tx).Expire(stream.Context(), sha, s.gatekeeper.ttl)
 		if _, err := (*tx).Exec(stream.Context()); err != nil {
-			return err
+			return fmt.Errorf("gatekeeper tx: %w", err)
 		}
 	}
 
@@ -251,12 +255,16 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 	keyYaraCompileDone := fmt.Sprintf("yara:compile:done:%s", id)
 
 	for {
+		if err := stream.Context().Err(); err != nil {
+			return fmt.Errorf("context closed: %w", err)
+		}
+
 		in, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("receive stream: %w", err)
 		}
 
 		if req == nil {
@@ -270,7 +278,7 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 			p.ExpireAt(stream.Context(), keyYaraCompile, deadline)
 
 			if _, err := p.Exec(stream.Context()); err != nil {
-				return err
+				return fmt.Errorf("redis exec: %w", err)
 			}
 		}
 	}
@@ -286,7 +294,7 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 			Member: id,
 		},
 	).Err(); err != nil {
-		return err
+		return fmt.Errorf("sending task: %w", err)
 	}
 
 	var errMsg string
@@ -326,7 +334,7 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 	}
 
 	if err := stream.Send(resp); err != nil {
-		return err
+		return fmt.Errorf("send stream: %w", err)
 	}
 
 	return nil
@@ -349,12 +357,16 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 	keyYaraSyncDone := fmt.Sprintf("yara:compile_and_sync:done:%s", id)
 
 	for {
+		if err := stream.Context().Err(); err != nil {
+			return fmt.Errorf("context closed: %w", err)
+		}
+
 		in, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("receive stream: %w", err)
 		}
 
 		if req == nil {
@@ -373,7 +385,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 			for _, inData := range in.Data {
 				outData, err := json.Marshal(*inData)
 				if err != nil {
-					return err
+					return fmt.Errorf("marshaling: %w", err)
 				}
 
 				// Send for compilation
@@ -382,7 +394,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 			}
 
 			if _, err := p.Exec(stream.Context()); err != nil {
-				return err
+				return fmt.Errorf("redis exec: %w", err)
 			}
 		}
 	}
@@ -398,7 +410,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 			Member: id,
 		},
 	).Err(); err != nil {
-		return err
+		return fmt.Errorf("sending task: %w", err)
 	}
 
 	var errMsg string
@@ -448,7 +460,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 	nSynced, err := strconv.Atoi(synced)
 	if err != nil {
 		// bye bye bye
-		return err
+		return fmt.Errorf("converting string: %w", err)
 	}
 
 	resp.Hash = []byte(hash)
@@ -456,7 +468,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 	resp.Synced = int32(nSynced)
 
 	if err := stream.Send(resp); err != nil {
-		return err
+		return fmt.Errorf("send stream: %w", err)
 	}
 
 	return nil
@@ -468,12 +480,16 @@ func (s *server) ShouldUpdateYara(stream strelka.Frontend_ShouldUpdateYaraServer
 	var hash []byte
 
 	for {
+		if err := stream.Context().Err(); err != nil {
+			return fmt.Errorf("context closed: %w", err)
+		}
+
 		in, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
-			return err
+			return fmt.Errorf("receive stream: %w", err)
 		}
 
 		if yaraCacheKey == "" {
@@ -494,18 +510,18 @@ func (s *server) ShouldUpdateYara(stream strelka.Frontend_ShouldUpdateYaraServer
 	if err == redis.Nil {
 		// do nothing
 	} else if err != nil {
-		return err
+		return fmt.Errorf("getting hash key: %w", err)
 	}
 
 	currentHash, err = res.Result()
 	if err != nil {
-		return err
+		return fmt.Errorf("getting hash key: %w", err)
 	}
 
 	if err := stream.Send(&strelka.ShouldUpdateYaraResponse{
 		Ok: string(hash) != currentHash,
 	}); err != nil {
-		return err
+		return fmt.Errorf("send stream: %w", err)
 	}
 
 	return nil
