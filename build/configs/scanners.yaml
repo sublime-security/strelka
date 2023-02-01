@@ -454,6 +454,7 @@ scanners:
           - 'text/rtf'
           - 'rtf_file'
           - 'pdf_file'
+          - 'onenote_file'
       priority: 5
 #  'ScanSwf':
 #    - positive:
