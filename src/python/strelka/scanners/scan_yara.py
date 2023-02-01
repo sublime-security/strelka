@@ -55,7 +55,7 @@ class ScanYara(strelka.Scanner):
 
         if options.get('source') and len(compiled_custom_yara) == 0: # backcompat
             try:
-                compiled_custom_yara = yara.compile(source=options['source'], externals=externals)
+                compiled_custom_yara = [yara.compile(source=options['source'], externals=externals)]
             except (yara.Error, yara.SyntaxError):
                 self.flags.append('compiling_error')
 

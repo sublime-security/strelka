@@ -257,7 +257,7 @@ class Backend(object):
                         # since both the parent document and all child documents will
                         # take this path, and we wish to evaluate each against the
                         # same set of yara rules.
-                        yaraData = self.coordinator.get(f'yara:{root_id}') # backcompat
+                        legacy_yara_data = self.coordinator.get(f'yara:{root_id}') # backcompat
 
                     file.add_flavors({'mime': self.taste_mime(data)})
                     file.add_flavors({'yara': self.taste_yara(data)})
@@ -316,18 +316,16 @@ class Backend(object):
                                 compiled_custom_yara = []
 
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
-                                if not yara_cache_key:
-                                    continue
-
-                                yara_cache_key = yara_cache_key.decode()
-                                yaraItems = self.coordinator.lrange(f'yara:compiled:{yara_cache_key}', 0, -1)
-                                for yaraData in yaraItems:
-                                    if not yaraData:
-                                        break
-                                    buf = io.BytesIO(yaraData)
-                                    yaraDataC = yara.load(file=buf)
-                                    compiled_custom_yara.append(yaraDataC)
-                                options['compiled_custom_yara'] = compiled_custom_yara
+                                if yara_cache_key:
+                                    yara_cache_key = yara_cache_key.decode()
+                                    yaraItems = self.coordinator.lrange(f'yara:compiled:{yara_cache_key}', 0, -1)
+                                    for yaraData in yaraItems:
+                                        if not yaraData:
+                                            break
+                                        buf = io.BytesIO(yaraData)
+                                        yaraDataC = yara.load(file=buf)
+                                        compiled_custom_yara.append(yaraDataC)
+                                    options['compiled_custom_yara'] = compiled_custom_yara
 
                                 if legacy_yara_data: # backcompat
                                     options['source'] = legacy_yara_data.decode()
