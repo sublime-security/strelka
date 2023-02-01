@@ -93,7 +93,6 @@ scanners:
           - 'vbframe_file'
           - 'mso_file'
           - 'application/vnd.ms-excel'
-          - 'pdf_file'
       priority: 5
       options:
         keys:
