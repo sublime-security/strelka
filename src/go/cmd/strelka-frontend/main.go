@@ -64,7 +64,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 	keyd := fmt.Sprintf("data:%v", id)
 	keye := fmt.Sprintf("event:%v", id)
 	keyy := fmt.Sprintf("yara:%v", id)
-	keyo := fmt.Sprintf("org_id:%s", id)
+	keyo := fmt.Sprintf("yara_cache_key:%s", id)
 
 	var attr *strelka.Attributes
 	var req *strelka.Request
@@ -88,8 +88,8 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 		p := s.coordinator.cli.Pipeline()
 
-		if attr.OrgID != "" {
-			p.Set(stream.Context(), keyo, attr.OrgID, time.Until(deadline))
+		if attr.YaraCacheKey != "" {
+			p.Set(stream.Context(), keyo, attr.YaraCacheKey, time.Until(deadline))
 		}
 
 		p.RPush(stream.Context(), keyd, in.Data)
@@ -333,7 +333,7 @@ func (s *server) CompileYara(stream strelka.Frontend_CompileYaraServer) error {
 }
 
 func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
-	var orgID string
+	var yaraCacheKey string
 	var req *strelka.Request
 
 	deadline, ok := stream.Context().Deadline()
@@ -344,7 +344,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 	id := uuid.New().String()
 
 	var keyYaraHash string
-	keyOrgID := fmt.Sprintf("org_id:%s", id)
+	keyYaraCacheKey := fmt.Sprintf("yara_cache_key:%s", id)
 	keyYaraSync := fmt.Sprintf("yara:compile_and_sync:%s", id)
 	keyYaraSyncDone := fmt.Sprintf("yara:compile_and_sync:done:%s", id)
 
@@ -361,13 +361,13 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 			req = in.Request
 		}
 
-		if orgID == "" {
-			orgID = in.OrgID
+		if yaraCacheKey == "" {
+			yaraCacheKey = in.YaraCacheKey
 		}
 
 		p := s.coordinator.cli.Pipeline()
-		keyYaraHash = fmt.Sprintf("yara:hash:%s", orgID)
-		p.Set(stream.Context(), keyOrgID, orgID, time.Until(deadline))
+		keyYaraHash = fmt.Sprintf("yara:hash:%s", yaraCacheKey)
+		p.Set(stream.Context(), keyYaraCacheKey, yaraCacheKey, time.Until(deadline))
 
 		if len(in.Data) > 0 {
 			for _, inData := range in.Data {
@@ -464,7 +464,7 @@ func (s *server) SyncYara(stream strelka.Frontend_SyncYaraServer) error {
 
 func (s *server) ShouldUpdateYara(stream strelka.Frontend_ShouldUpdateYaraServer) error {
 	var keyYaraHash string
-	var orgID string
+	var yaraCacheKey string
 	var hash []byte
 
 	for {
@@ -476,15 +476,15 @@ func (s *server) ShouldUpdateYara(stream strelka.Frontend_ShouldUpdateYaraServer
 			return err
 		}
 
-		if orgID == "" {
-			orgID = in.OrgID
+		if yaraCacheKey == "" {
+			yaraCacheKey = in.YaraCacheKey
 		}
 
 		if len(hash) == 0 {
 			hash = in.Hash
 		}
 
-		keyYaraHash = fmt.Sprintf("yara:hash:%s", orgID)
+		keyYaraHash = fmt.Sprintf("yara:hash:%s", yaraCacheKey)
 	}
 
 	var currentHash string

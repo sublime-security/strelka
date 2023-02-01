@@ -19,7 +19,7 @@ message Attributes {
   string filename = 1;
   map<string, string> metadata = 2;
   string yaraFilename = 3;
-  string orgID = 4;
+  string yaraCacheKey = 4;
 }
 
 message YaraData {
@@ -39,7 +39,7 @@ message CompileYaraResponse {
 
 message SyncYaraRequest {
   Request request = 1;
-  string orgID = 2;
+  string yaraCacheKey = 2;
   repeated YaraData data = 3;
 }
 
@@ -51,7 +51,7 @@ message SyncYaraResponse {
 
 message ShouldUpdateYaraRequest {
   Request request = 1;
-  string orgID = 2;
+  string yaraCacheKey = 2;
   bytes hash = 3;
 }
 

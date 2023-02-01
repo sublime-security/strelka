@@ -131,11 +131,11 @@ class Backend(object):
                 try:
                     with interruptingcow.timeout(timeout,
                                                  strelka.RequestTimeout):
-                        org_id = self.coordinator.get(f'org_id:{root_id}')
-                        if not org_id:
+                        yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
+                        if not yara_cache_key:
                             continue
-                        org_id = org_id.decode()
-                        errMsg, nSynced = self.compile_and_sync_yara(org_id, root_id)
+                        yara_cache_key = yara_cache_key.decode()
+                        errMsg, nSynced = self.compile_and_sync_yara(yara_cache_key, root_id)
                         synced += nSynced
                         logging.info('synced:' + str(nSynced))
 
@@ -178,11 +178,11 @@ class Backend(object):
 
         return errMsg
 
-    def compile_and_sync_yara(self, org_id, root_id):
+    def compile_and_sync_yara(self, yara_cache_key, root_id):
         synced = 0
 
-        self.coordinator.delete(f'yara:compiled:{org_id}')
-        self.coordinator.delete(f'yara:hash:{org_id}')
+        self.coordinator.delete(f'yara:compiled:{yara_cache_key}')
+        self.coordinator.delete(f'yara:hash:{yara_cache_key}')
 
         hash = hashlib.sha256()
         errMsg = ''
@@ -206,7 +206,7 @@ class Backend(object):
                 buf = io.BytesIO()
                 compiled_yara.save(file=buf)
 
-                self.coordinator.rpush(f'yara:compiled:{org_id}', buf.getvalue())
+                self.coordinator.rpush(f'yara:compiled:{yara_cache_key}', buf.getvalue())
 
                 hash.update(data['data'].encode())
                 synced += 1
@@ -217,7 +217,7 @@ class Backend(object):
                 errMsg = 'compiling yara: ' + str(e2)
                 logging.error(errMsg)
 
-        self.coordinator.set(f'yara:hash:{org_id}', hash.hexdigest())
+        self.coordinator.set(f'yara:hash:{yara_cache_key}', hash.hexdigest())
         self.coordinator.set(f'yara:synced:{root_id}', synced)
 
         return errMsg, synced
@@ -315,12 +315,12 @@ class Backend(object):
                                 logging.info('scanning')
                                 compiled_custom_yara = []
 
-                                org_id = self.coordinator.get(f'org_id:{root_id}')
-                                if not org_id:
+                                yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
+                                if not yara_cache_key:
                                     continue
 
-                                org_id = org_id.decode()
-                                yaraItems = self.coordinator.lrange(f'yara:compiled:{org_id}', 0, -1)
+                                yara_cache_key = yara_cache_key.decode()
+                                yaraItems = self.coordinator.lrange(f'yara:compiled:{yara_cache_key}', 0, -1)
                                 for yaraData in yaraItems:
                                     if not yaraData:
                                         break
