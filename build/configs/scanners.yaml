@@ -93,6 +93,7 @@ scanners:
           - 'vbframe_file'
           - 'mso_file'
           - 'application/vnd.ms-excel'
+          - 'pdf_file'
       priority: 5
       options:
         keys:
@@ -453,6 +454,7 @@ scanners:
           - 'hta_file'
           - 'text/rtf'
           - 'rtf_file'
+          - 'pdf_file'
       priority: 5
 #  'ScanSwf':
 #    - positive:
