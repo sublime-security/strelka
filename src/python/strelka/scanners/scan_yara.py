@@ -38,13 +38,9 @@ class ScanYara(strelka.Scanner):
             # custom yara was provided - use it to evaluate this file
             compiled_custom_yara.extend(options['compiled_custom_yara'])
 
-        if options.get('source') and len(compiled_custom_yara) == 0:
-            try:
-                compiled_custom_yara = yara.compile(source=options['source'])
-            except (yara.Error, yara.SyntaxError):
-                self.flags.append('compiling_error')
-
-        # Support some common external variables
+        # Support some common external variables (backcompat)
+        # The file and data extractions are not available with pre-compiled yara;
+        # in this case, all externals values will be an empty string
         externals = copy.copy(yara_extern.EXTERNAL_VARS)
         externals['filename'] = file.name
         externals['file_name'] = file.name
@@ -56,6 +52,12 @@ class ScanYara(strelka.Scanner):
         externals['md5'] = hashlib.md5(data).hexdigest()
         externals['sha1'] = hashlib.sha1(data).hexdigest()
         externals['sha256'] = hashlib.sha256(data).hexdigest()
+
+        if options.get('source') and len(compiled_custom_yara) == 0: # backcompat
+            try:
+                compiled_custom_yara = yara.compile(source=options['source'], externals=externals)
+            except (yara.Error, yara.SyntaxError):
+                self.flags.append('compiling_error')
 
         try:
             if self.compiled_yara is None and os.path.exists(location):
