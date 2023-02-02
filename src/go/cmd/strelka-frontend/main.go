@@ -99,11 +99,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		p.RPush(stream.Context(), keyd, in.Data)
 		p.ExpireAt(stream.Context(), keyd, deadline)
 
-		if len(in.Data) > 0 {
-			hash.Write(in.Data)
-			p.RPush(stream.Context(), keyd, in.Data)
-		}
-
+		hash.Write(in.Data)
 		if len(in.YaraData) > 0 {
 			hash.Write(in.YaraData)
 			// We're using a different pattern for YARA data, because (unlike the file data) it's not chunked.
