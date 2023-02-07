@@ -15,10 +15,11 @@ To update the protobuf message definitions and/or gRPC endpoints, you must compi
 1. Update defs in `strelka.proto`
 2. `go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.28`
 3. `go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.2`
-4. `cd src/go/api/strelka` (if not already there)
-5. `protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false
+4. `export PATH="$PATH:$(go env GOPATH)/bin"`
+5. `cd src/go/api/strelka` (if not already there)
+6. `protoc --go_out=. --go-grpc_opt=require_unimplemented_servers=false
  --go-grpc_out=. --proto_path=. ./strelka.proto`
-6. `cp github.com/sublime-security/strelka/src/go/api/strelka/strelka*.go .`
-7. `rm -rf ./github.com`
-8. `git status` (you should see that `strelka.pb.go` and `strelka_grpc.pb.go` have been updated)
-9. Perform equivalent process on the client that will be communicating with Strelka to send the appropriate messages.
+7. `cp github.com/sublime-security/strelka/src/go/api/strelka/strelka*.go .`
+8. `rm -rf ./github.com`
+9. `git status` (you should see that `strelka.pb.go` and `strelka_grpc.pb.go` have been updated)
+10. Perform equivalent process on the client that will be communicating with Strelka to send the appropriate messages.
