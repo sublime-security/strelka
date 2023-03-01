@@ -30,6 +30,9 @@ class ScanUrl(strelka.Scanner):
         self.scanner_timeout = min(ScanUrl.max_scanner_timeout, self.scanner_timeout)
 
     def scan(self, data, file, options, expire_at):
+        if isinstance(data, bytes) and len(data) > ScanUrl.max_file_size:
+            return
+
         regex = options.get('regex', False)
         if regex:
             (key, value), = regex.items()
