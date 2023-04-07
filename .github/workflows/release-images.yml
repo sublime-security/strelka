@@ -47,9 +47,6 @@ jobs:
       - name: Determine the version from the tag
         id: get_ver
         run: |
-#          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-#          test -n "$SEM_VER"
-#          echo "::set-output name=SEM_VER::$SEM_VER"
           echo "::set-output name=SEM_VER::100.1.1"
 
       - name: Login to DockerHub
@@ -146,9 +143,6 @@ jobs:
       - name: Determine the version from the tag
         id: get_ver
         run: |
-#          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-#          test -n "$SEM_VER"
-#          echo "::set-output name=SEM_VER::$SEM_VER"
           echo "::set-output name=SEM_VER::100.1.1"
 
       - name: Build and Push Final Manifests to ECR & DockerHub
