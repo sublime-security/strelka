@@ -17,7 +17,7 @@ jobs:
         arch: [arm64, amd64]
         include:
           - arch: arm64
-            runner: buildjet-16vcpu-ubuntu-2204-arm
+            runner: buildjet-4vcpu-ubuntu-2204-arm
           - arch: amd64
             runner: buildjet-4vcpu-ubuntu-2204
 
