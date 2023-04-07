@@ -2,8 +2,9 @@
 name: Update Strelka Docker Images
 
 on:
-  release:
-    types: [published]
+  push:
+    branches:
+      - 'cd.arm'
 
 jobs:
   push_to_registry:
@@ -46,9 +47,10 @@ jobs:
       - name: Determine the version from the tag
         id: get_ver
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-          test -n "$SEM_VER"
-          echo "::set-output name=SEM_VER::$SEM_VER"
+#          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
+#          test -n "$SEM_VER"
+#          echo "::set-output name=SEM_VER::$SEM_VER"
+          echo "::set-output name=SEM_VER::100.1.1"
 
       - name: Login to DockerHub
         uses: docker/login-action@v1
@@ -144,9 +146,10 @@ jobs:
       - name: Determine the version from the tag
         id: get_ver
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-          test -n "$SEM_VER"
-          echo "::set-output name=SEM_VER::$SEM_VER"
+#          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
+#          test -n "$SEM_VER"
+#          echo "::set-output name=SEM_VER::$SEM_VER"
+          echo "::set-output name=SEM_VER::100.1.1"
 
       - name: Build and Push Final Manifests to ECR & DockerHub
         env:
