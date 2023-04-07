@@ -17,7 +17,7 @@ jobs:
         arch: [arm64, amd64]
         include:
           - arch: arm64
-            runner: buildjet-4vcpu-ubuntu-2204-arm
+            runner: buildjet-16vcpu-ubuntu-2204-arm
           - arch: amd64
             runner: buildjet-4vcpu-ubuntu-2204
 
@@ -34,8 +34,16 @@ jobs:
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1.6.0
+        continue-on-error: true
         with:
-          # Use a role instead of including credentials in secrets, but still hide that role name to be gated by GH environments.
+          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
+          role-duration-seconds: 7200 # 2 hours
+          aws-region: us-east-1
+
+      - name: 2nd Attempt Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1.6.0
+        if: ${{ env.AWS_ACCESS_KEY_ID == '' }}
+        with:
           role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
@@ -124,8 +132,16 @@ jobs:
     steps:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1.6.0
+        continue-on-error: true
         with:
-          # Use a role instead of including credentials in secrets, but still hide that role name to be gated by GH environments.
+          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
+          role-duration-seconds: 7200 # 2 hours
+          aws-region: us-east-1
+
+      - name: 2nd Attempt Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1.6.0
+        if: ${{ env.AWS_ACCESS_KEY_ID == '' }}
+        with:
           role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
@@ -205,8 +221,16 @@ jobs:
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v1.6.0
+        continue-on-error: true
         with:
-          # Use a role instead of including credentials in secrets, but still hide that role name to be gated by GH environments.
+          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
+          role-duration-seconds: 7200 # 2 hours
+          aws-region: us-east-1
+
+      - name: 2nd Attempt Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1.6.0
+        if: ${{ env.AWS_ACCESS_KEY_ID == '' }}
+        with:
           role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
