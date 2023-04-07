@@ -128,6 +128,9 @@ jobs:
     needs: push_to_registry
     runs-on: ubuntu-20.04
     environment: production
+    permissions:
+      id-token: write
+      contents: read
 
     steps:
       - name: Configure AWS credentials
@@ -213,6 +216,9 @@ jobs:
     name: Validate that ECR Images Have Propagated to All Regions
     runs-on: ubuntu-latest
     environment: production
+    permissions:
+      id-token: write
+      contents: read
     needs: manifest_image
 
     steps:
