@@ -79,7 +79,7 @@ jobs:
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
           docker_hub=sublimesec/strelka-frontend
-          ecr=$ECR_REGISTRY/stelka-frontend
+          ecr=$ECR_REGISTRY/strelka-frontend
 
           docker manifest create $docker_hub:latest \
               $docker_hub:$amd_tag \
@@ -117,7 +117,7 @@ jobs:
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
           docker_hub=sublimesec/strelka-backend
-          ecr=$ECR_REGISTRY/stelka-backend
+          ecr=$ECR_REGISTRY/strelka-backend
 
           docker manifest create $docker_hub:latest \
               $docker_hub:$amd_tag \
@@ -155,7 +155,7 @@ jobs:
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
           docker_hub=sublimesec/strelka-manager
-          ecr=$ECR_REGISTRY/stelka-manager
+          ecr=$ECR_REGISTRY/strelka-manager
 
           docker manifest create $docker_hub:latest \
               $docker_hub:$amd_tag \

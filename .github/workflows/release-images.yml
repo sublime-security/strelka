@@ -178,7 +178,7 @@ jobs:
           
           # Backend
           docker_hub=sublimesec/strelka-backend
-          ecr=$ECR_REGISTRY/stelka-backend
+          ecr=$ECR_REGISTRY/strelka-backend
           docker manifest create $docker_hub:$SEM_VER \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
@@ -191,7 +191,7 @@ jobs:
 
           # Frontend
           docker_hub=sublimesec/strelka-frontend
-          ecr=$ECR_REGISTRY/stelka-frontend
+          ecr=$ECR_REGISTRY/strelka-frontend
           docker manifest create $docker_hub:$SEM_VER \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
@@ -204,7 +204,7 @@ jobs:
 
           # Manager
           docker_hub=sublimesec/strelka-manager
-          ecr=$ECR_REGISTRY/stelka-manager
+          ecr=$ECR_REGISTRY/strelka-manager
           docker manifest create $docker_hub:$SEM_VER \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
