@@ -360,7 +360,7 @@ scanners:
           - 'pdf_file'
       priority: 5
       options:
-        extract_text: False
+        extract_text: True
         limit: 2000
   'ScanPe':
     - positive:
