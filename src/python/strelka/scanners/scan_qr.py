@@ -5,6 +5,10 @@ import re
 
 from strelka import strelka
 
+# Regex to match URL
+# NOTE: this is overly simplified but will be validated elsewhere
+URL_REGEX = r'^[a-z]{3,10}:\/\/.*'
+
 
 class ScanQr(strelka.Scanner):
     """
@@ -12,7 +16,6 @@ class ScanQr(strelka.Scanner):
     """
     def scan(self, data, file, options, expire_at):
         try:
-            URL_REGEX = '^((https?|ftp|smtp):\/\/)?(www.)?[a-z0-9]+\.[a-z]+(\/[a-zA-Z0-9#]+\/?)*'
             barcodes = decode(Image.open(io.BytesIO(data)))
 
             try:
