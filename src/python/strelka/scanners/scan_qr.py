@@ -31,9 +31,6 @@ class ScanQr(strelka.Scanner):
                 # Type: Mobile
                 elif any(qtype in self.event['data'] for qtype in ['tel:', 'sms:']):
                     self.event['type'] = 'mobile'
-                # Type: App
-                elif any(qtype in self.event['data'] for qtype in ['itunes.apple.com', 'market://']):
-                    self.event['type'] = 'app'
                 # Type: Geo
                 elif 'geo:' in self.event['data']:
                     self.event['type'] = 'geo'
