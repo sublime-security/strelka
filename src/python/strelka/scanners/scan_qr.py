@@ -7,7 +7,7 @@ from strelka import strelka
 
 # Regex to match URL
 # NOTE: this is overly simplified but will be validated elsewhere
-URL_REGEX = r'^[a-z]{3,10}:\/\/.*'
+URL_REGEX = r'^[a-zA-Z]{3,10}:\/\/.*'
 
 
 class ScanQr(strelka.Scanner):
