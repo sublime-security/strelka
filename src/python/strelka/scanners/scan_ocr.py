@@ -22,8 +22,9 @@ class ScanOcr(strelka.Scanner):
         pdf_to_png = options.get('pdf_to_png', False)
 
         if pdf_to_png and 'application/pdf' in file.flavors.get('mime', []):
+            # Use fitz builtin OCR support
             doc = fitz.open(stream=data, filetype='pdf')
-            data = doc.get_page_pixmap(0).tobytes('png')
+            data = doc.get_page_pixmap(0, dpi=150).tobytes('png')
 
         with tempfile.NamedTemporaryFile(dir=tmp_directory) as tmp_data:
             tmp_data.write(data)
