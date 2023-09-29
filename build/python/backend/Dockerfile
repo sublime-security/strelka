@@ -1,4 +1,4 @@
-FROM ubuntu:22.10
+FROM ubuntu:23.04
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 
@@ -6,6 +6,8 @@ ARG YARA_VERSION=4.3.1
 ARG YARA_PYTHON_VERSION=4.3.1
 ARG CAPA_VERSION=3.2.1
 ARG EXIFTOOL_VERSION=12.44
+
+ENV PIP_BREAK_SYSTEM_PACKAGES 1
 
 # Update packages
 RUN apt-get -qq update && \
