@@ -157,6 +157,7 @@ jobs:
       - name: Pull, Tag, Push BackEnd
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_GC_REGISTRY: ${{ steps.login-ecr-gov-cloud.outputs.registry }}
           SEM_VER: ${{ steps.get_ver.outputs.SEM_VER }}
           MAJOR_VERSION: ${{ steps.get_ver.outputs.MAJOR_VERSION }}
           MINOR_VERSION: ${{ steps.get_ver.outputs.MINOR_VERSION }}
@@ -208,6 +209,7 @@ jobs:
       - name: Pull, Tag, Push Manager
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          ECR_GC_REGISTRY: ${{ steps.login-ecr-gov-cloud.outputs.registry }}
           SEM_VER: ${{ steps.get_ver.outputs.SEM_VER }}
           MAJOR_VERSION: ${{ steps.get_ver.outputs.MAJOR_VERSION }}
           MINOR_VERSION: ${{ steps.get_ver.outputs.MINOR_VERSION }}
