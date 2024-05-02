@@ -514,6 +514,8 @@ scanners:
           - 'text/html'
           - 'text/rtf'
           - 'rtf_file'
+          - 'text/xml'
+          - 'xml_file'
           - 'text/calendar'
           - 'application/ics'
           - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
