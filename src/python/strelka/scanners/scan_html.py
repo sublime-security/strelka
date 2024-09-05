@@ -15,6 +15,9 @@ class ScanHtml(strelka.Scanner):
     def scan(self, data, file, options, expire_at):
         parser = options.get('parser', 'html.parser')
 
+        # Store raw HTML data
+        self.event['raw'] = data.decode('utf-8', errors='replace')
+
         self.event['total'] = {
             'scripts': 0,
             'forms': 0,
