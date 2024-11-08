@@ -35,7 +35,7 @@ RUN apt-get -qq update && \
     libgl1 \
     python3-setuptools \
     redis-server \
-    tesseract-ocr \
+    tesseract-ocr=5.3.4-1.1 \
     unrar \
     upx \
     jq && \
