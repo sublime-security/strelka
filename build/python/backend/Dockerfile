@@ -13,11 +13,15 @@ RUN apt-get -qq update && \
     apt-get install --no-install-recommends -qq \
     automake \
     build-essential \
+    ca-certificates \
     cmake \
     curl \
     gcc \
     git \
+    g++ \
     libglu1-mesa \
+    libleptonica-dev \
+    libpango1.0-dev \
     libtool \
     make \
     swig \
@@ -35,7 +39,6 @@ RUN apt-get -qq update && \
     libgl1 \
     python3-setuptools \
     redis-server \
-    tesseract-ocr=5.3.4-1.1 \
     unrar \
     upx \
     jq && \
@@ -109,6 +112,11 @@ RUN mkdir jtr && cd jtr && git init && git remote add origin https://github.com/
   && make install \
   && cp -Tr /jtr/run/ /jtr && rm -rf /jtr/run \
   && chmod -R 777 /jtr
+
+
+# Install Tesseract from source
+RUN git clone https://github.com/tesseract-ocr/tesseract.git && cd tesseract && ./autogen.sh && ./configure && make && make install && ldconfig && make training && make training-install
+
 
 # Install Python packages
 COPY ./build/python/backend/requirements.txt /strelka/requirements.txt
