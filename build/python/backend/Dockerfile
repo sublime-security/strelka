@@ -115,7 +115,8 @@ RUN mkdir jtr && cd jtr && git init && git remote add origin https://github.com/
 
 
 # Install Tesseract from source
-RUN git clone https://github.com/tesseract-ocr/tesseract.git && cd tesseract && ./autogen.sh && ./configure && make && make install && ldconfig && make training && make training-install
+# 64eab6c457b2337dd690746a5fde5c222b40d5f8 is version 5.5.0
+RUN mkdir tesseract && cd tesseract && git init && git remote add origin https://github.com/tesseract-ocr/tesseract.git && git fetch --depth 1 origin 64eab6c457b2337dd690746a5fde5c222b40d5f8 && git reset --hard FETCH_HEAD && ./autogen.sh && ./configure && make && make install && ldconfig && make training && make training-install
 
 
 # Install Python packages
