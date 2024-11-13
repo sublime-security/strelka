@@ -25,10 +25,12 @@ RUN apt-get -qq update && \
     libtool \
     make \
     swig \
+    tesseract-ocr-eng \
     python3-dev \
     python3-pip \
     python3-wheel \
     pkg-config \
+    wget \
 # Install runtime packages
     antiword \
     libarchive-dev \
@@ -118,6 +120,8 @@ RUN mkdir jtr && cd jtr && git init && git remote add origin https://github.com/
 # 64eab6c457b2337dd690746a5fde5c222b40d5f8 is version 5.5.0
 RUN mkdir tesseract && cd tesseract && git init && git remote add origin https://github.com/tesseract-ocr/tesseract.git && git fetch --depth 1 origin 64eab6c457b2337dd690746a5fde5c222b40d5f8 && git reset --hard FETCH_HEAD && ./autogen.sh && ./configure && make && make install && ldconfig && make training && make training-install
 
+# Install English support for Tesseract
+RUN wget https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata && mv eng.traineddata /usr/local/share/tessdata/
 
 # Install Python packages
 COPY ./build/python/backend/requirements.txt /strelka/requirements.txt
