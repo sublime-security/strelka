@@ -134,7 +134,6 @@ RUN cd /strelka/ && \
     git \
     libtool \
     make \
-    unrar \
     python3-dev \
     python3-pip \
     python3-wheel && \
