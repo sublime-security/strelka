@@ -417,6 +417,8 @@ scanners:
           - 'image/x-ms-bmp'
           - 'bmp_file'
       priority: 5
+      options:
+        pdf_to_png: True
   'ScanRar':
     - positive:
         flavors:
