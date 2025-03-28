@@ -602,8 +602,6 @@ scanners:
           - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           - 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
           - 'ooxml_file'
-          - 'application/msword'
-          - 'olecf_file'
       priority: 5
       options:
         limit: 1000
