@@ -535,6 +535,8 @@ scanners:
           - 'xml_file'
           - 'svg_file'
           - 'image/svg+xml'
+          - 'text/calendar'
+          - 'application/ics'
       priority: 5
 #  'ScanVb': revisit
 #    - positive:
