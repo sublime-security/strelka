@@ -52,6 +52,7 @@ func main() {
 		select {
 		case <-shutdownWorkersSig:
 			log.Printf("Received shutdown signal, exiting.")
+			return
 		default:
 		}
 
