@@ -248,6 +248,7 @@ scanners:
         flavors:
           - 'javascript_file'
           - 'text/javascript'
+          - 'application/ecmascript'
       priority: 5
       options:
         beautify: True
