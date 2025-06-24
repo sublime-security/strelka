@@ -35,10 +35,6 @@ RUN apt-get -qq update && \
     antiword \
     libarchive-dev \
     libfuzzy-dev \
-    libgssapi-krb5-2=1.19.2-2ubuntu0.7 \
-    libkrb5-3=1.19.2-2ubuntu0.7 \
-    libk5crypto3=1.19.2-2ubuntu0.7 \
-    libkrb5support0=1.19.2-2ubuntu0.7 \
     libmagic-dev \
     libssl-dev \
     libgl1 \
@@ -47,6 +43,8 @@ RUN apt-get -qq update && \
     unrar \
     upx \
     jq && \
+# Upgrade packages
+    apt-get -y upgrade && \
 # Download and compile Archive library, needed for exiftool to work best
     cd /tmp/ && \
     curl -OL https://cpan.metacpan.org/authors/id/P/PH/PHRED/Archive-Zip-1.68.tar.gz && \
