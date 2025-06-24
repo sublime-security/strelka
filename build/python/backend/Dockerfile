@@ -126,7 +126,7 @@ RUN mkdir tesseract && cd tesseract && git init && git remote add origin https:/
 # Install English support for Tesseract
 RUN wget https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata && mv eng.traineddata /usr/local/share/tessdata/
 
-# Install Zbar
+# Install Zbar from binary; 0.23.92 has a critical vulnerability, 0.23.93 must be installed from source or binary
 RUN wget https://github.com/mchehab/zbar/archive/refs/tags/0.23.93.tar.gz && tar -zxvf 0.23.93.tar.gz && mv zbar-0.23.93 /usr/local
 
 # Install Python packages
