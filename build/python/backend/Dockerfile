@@ -35,6 +35,10 @@ RUN apt-get -qq update && \
     antiword \
     libarchive-dev \
     libfuzzy-dev \
+    libgssapi-krb5-2=1.19.2-2ubuntu0.7 \
+    libkrb5-3=1.19.2-2ubuntu0.7 \
+    libk5crypto3=1.19.2-2ubuntu0.7 \
+    libkrb5support0=1.19.2-2ubuntu0.7 \
     libmagic-dev \
     libssl-dev \
     libgl1 \
