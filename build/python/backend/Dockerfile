@@ -1,5 +1,4 @@
-#FROM ubuntu:24.04
-FROM ubuntu:22.04
+FROM ubuntu:24.04
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 
@@ -126,7 +125,7 @@ RUN wget https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata && m
 
 # Install Python packages
 COPY ./build/python/backend/requirements.txt /strelka/requirements.txt
-RUN pip3 install --no-cache-dir -r /strelka/requirements.txt
+RUN pip3 install --no-cache-dir --break-system-packages -r /strelka/requirements.txt
 
 # Copy Strelka files
 COPY ./src/python/ /strelka/
