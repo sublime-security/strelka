@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:22.04
 ARG DEBIAN_FRONTEND=noninteractive
 LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 
@@ -37,7 +37,6 @@ RUN apt-get -qq update && \
     libfuzzy-dev \
     libmagic-dev \
     libssl-dev \
-    libzbar0 \
     libgl1 \
     python3-setuptools \
     redis-server \
@@ -123,9 +122,12 @@ RUN mkdir tesseract && cd tesseract && git init && git remote add origin https:/
 # Install English support for Tesseract
 RUN wget https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata && mv eng.traineddata /usr/local/share/tessdata/
 
+# Install Zbar
+RUN wget https://github.com/mchehab/zbar/archive/refs/tags/0.23.93.tar.gz && tar -zxvf 0.23.93.tar.gz && mv zbar-0.23.93 /usr/local
+
 # Install Python packages
 COPY ./build/python/backend/requirements.txt /strelka/requirements.txt
-RUN pip3 install --no-cache-dir --break-system-packages -r /strelka/requirements.txt
+RUN pip3 install --no-cache-dir -r /strelka/requirements.txt
 
 # Copy Strelka files
 COPY ./src/python/ /strelka/
