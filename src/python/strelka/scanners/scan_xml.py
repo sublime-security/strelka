@@ -25,7 +25,6 @@ class ScanXml(strelka.Scanner):
         self.event.setdefault('tags', [])
         self.event.setdefault('tag_data', [])
         self.event.setdefault('namespaces', [])
-        self.event.setdefault('scripts', [])
         self.event['total'] = {'tags': 0, 'scripts': 0, 'extracted': 0}
 
         xml = None
