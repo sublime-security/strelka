@@ -106,6 +106,7 @@ class ScanHtml(strelka.Scanner):
                 script_flavors = [
                     script.get('language', '').lower(),
                     script.get('type', '').lower(),
+                    'text/javascript',
                 ]
                 script_entry = {
                     'src': script.get('src'),

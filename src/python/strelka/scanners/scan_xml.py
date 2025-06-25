@@ -6,6 +6,8 @@ from strelka import strelka
 class ScanXml(strelka.Scanner):
     """Collects metadata and extracts embedded files from XML files.
 
+    Extracts JavaScript content from script tags and emits them as child files.
+
     Options:
         extract_tags: List of XML tags that will have their text extracted
             as child files.
@@ -23,7 +25,7 @@ class ScanXml(strelka.Scanner):
         self.event.setdefault('tags', [])
         self.event.setdefault('tag_data', [])
         self.event.setdefault('namespaces', [])
-        self.event['total'] = {'tags': 0, 'extracted': 0}
+        self.event['total'] = {'tags': 0, 'scripts': 0, 'extracted': 0}
 
         xml = None
         try:
@@ -78,6 +80,30 @@ class ScanXml(strelka.Scanner):
                             name=tag,
                             source=self.name,
                         )
+
+                        for c in strelka.chunk_string(text):
+                            self.upload_to_coordinator(
+                                extract_file.pointer,
+                                c,
+                                self.expire_at,
+                            )
+
+                        self.files.append(extract_file)
+                        self.event['total']['extracted'] += 1
+
+                # Check for script tags and extract JavaScript content
+                if tag == 'script':
+                    self.event['total']['scripts'] += 1
+
+                    if text and text.strip():
+                        extract_file = strelka.File(
+                            name=f'script_{self.event["total"]["scripts"]-1}',
+                            source=self.name,
+                        )
+                        script_flavors = [
+                            node.attrib.get('type', '').lower(),
+                        ]
+                        extract_file.add_flavors({'external': script_flavors})
 
                         for c in strelka.chunk_string(text):
                             self.upload_to_coordinator(
