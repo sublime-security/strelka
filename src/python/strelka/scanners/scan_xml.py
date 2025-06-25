@@ -95,12 +95,6 @@ class ScanXml(strelka.Scanner):
                 # Check for script tags and extract JavaScript content
                 if tag == 'script':
                     self.event['total']['scripts'] += 1
-                    script_entry = {
-                        'type': node.attrib.get('type'),
-                        'src': node.attrib.get('src'),
-                    }
-                    if script_entry not in self.event['scripts']:
-                        self.event['scripts'].append(script_entry)
 
                     if text and text.strip():
                         extract_file = strelka.File(
