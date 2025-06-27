@@ -34,7 +34,7 @@ PyMuPDF==1.23.5
 pefile==2019.4.18
 pgpdump3==1.5.2
 pyelftools==0.27
-pygments==2.9.0
+pygments==2.15.0
 pylzma==0.5.0
 pytesseract==0.3.7
 python-docx==0.8.11
