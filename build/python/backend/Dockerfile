@@ -41,7 +41,6 @@ RUN apt-get -qq update && \
     libssl-dev \
     libgl1 \
     python3-setuptools \
-    redis-server \
     unrar \
     upx \
     jq && \
@@ -134,6 +133,17 @@ RUN wget https://github.com/mchehab/zbar/archive/refs/tags/0.23.93.tar.gz && \
     cd zbar-0.23.93 && \
     autoreconf -vfi && \
     ./configure && \
+    make && \
+    make install && \
+    cd ..
+
+# Install redis 6.2.18 from source; 6.0.16 has 7 vulnerabilities ranging from low to high. These vulnerabilities
+# are fixed with security patches only available with an Ubuntu pro subscription, which we don't have.
+# Redis 6.2.18 is the closest available version that addresses all of the reported vulnerabilities.
+# Once we upgrade to Ubuntu 24.04, we can drop these and go back to `apt install redis-server`.
+RUN wget https://github.com/redis/redis/archive/refs/tags/6.2.18.tar.gz && \
+    tar -zxvf 6.2.18.tar.gz && \
+    cd redis-6.2.18 && \
     make && \
     make install && \
     cd ..
