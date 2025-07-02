@@ -41,7 +41,6 @@ RUN apt-get -qq update && \
     libssl-dev \
     libgl1 \
     python3-setuptools \
-    redis-server \
     unrar \
     upx \
     jq && \
