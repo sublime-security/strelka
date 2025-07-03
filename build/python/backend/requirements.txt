@@ -22,7 +22,6 @@ https://sublime-python-deps.s3.amazonaws.com/lief-0.12.3-cp310-cp310-linux_aarch
 lief==0.13.2; sys_platform != 'linux' or (platform_machine != 'arm64' and platform_machine != 'aarch64')
 
 lxml==4.9.1
-M2Crypto==0.38.0
 nested-lookup==0.2.22
 numpy==1.22.1
 olefile==0.46

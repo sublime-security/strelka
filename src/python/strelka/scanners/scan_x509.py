@@ -1,6 +1,7 @@
 import time
 
-from M2Crypto import X509
+from cryptography.hazmat.primitives import hashes
+from cryptography.x509 import load_pem_x509_certificate, load_der_x509_certificate
 
 from strelka import strelka
 
@@ -19,17 +20,18 @@ class ScanX509(strelka.Scanner):
         file_type = options.get('type', '')
 
         if file_type == 'der':
-            cert = X509.load_cert_der_string(data)
+            cert = load_der_x509_certificate(data)
         else:
-            cert = X509.load_cert_string(data)
+            cert = load_pem_x509_certificate(data)
 
-        self.event['issuer'] = cert.get_issuer().as_text()
-        self.event['subject'] = cert.get_subject().as_text()
-        self.event['serial_number'] = str(cert.get_serial_number())
-        self.event['fingerprint'] = cert.get_fingerprint()
-        self.event['version'] = cert.get_version()
-        self.event['not_after'] = int(cert.get_not_after().get_datetime().strftime('%s'))
-        self.event['not_before'] = int(cert.get_not_before().get_datetime().strftime('%s'))
+
+        self.event['issuer'] = str(cert.issuer)
+        self.event['subject'] = str(cert.subject)
+        self.event['serial_number'] = str(cert.serial_number)
+        self.event['fingerprint'] = cert.fingerprint(hashes.MD5())
+        self.event['version'] = cert.version
+        self.event['not_after'] = int(cert.not_valid_after.strftime('%s'))
+        self.event['not_before'] = int(cert.not_valid_before.strftime('%s'))
         if self.event['not_after'] < time.time():
             self.event['expired'] = True
         else:

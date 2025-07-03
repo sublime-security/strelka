@@ -1,6 +1,7 @@
 import tempfile
 
-from M2Crypto import SMIME, X509
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.serialization import pkcs7
 
 from strelka import strelka
 
@@ -17,20 +18,19 @@ class ScanPkcs7(strelka.Scanner):
             tmp_data.flush()
 
             if data[:1] == b'0':
-                pkcs7 = SMIME.load_pkcs7_der(tmp_data.name)
+                certs = pkcs7.load_der_pkcs7_certificates(data)
             else:
-                pkcs7 = SMIME.load_pkcs7(tmp_data.name)
+                certs = pkcs7.load_pem_pkcs7_certificates(data)
 
-            certs = pkcs7.get0_signers(X509.X509_Stack())
-            if certs:
+            if len(certs) > 0:
                 self.event['total']['certificates'] = len(certs)
                 for cert in certs:
                     extract_file = strelka.File(
-                        name=f'sn_{cert.get_serial_number()}',
+                        name=f'sn_{cert.serial_number}',
                         source=self.name,
                     )
 
-                    for c in strelka.chunk_string(cert.as_der()):
+                    for c in strelka.chunk_string(cert.public_bytes(serialization.Encoding.DER)):
                         self.upload_to_coordinator(
                             extract_file.pointer,
                             c,
