@@ -4,6 +4,9 @@ name: Update Strelka Docker Images
 on:
   release:
     types: [published]
+  push:
+    branches:
+      - main
 
 jobs:
   push_to_registry:
@@ -18,7 +21,7 @@ jobs:
             runner: ubuntu-latest-4-cores-public
 
     runs-on: ${{ matrix.runner }}
-    environment: production
+    environment: ${{ github.event_name == 'release' && 'production' || 'dev'  }}
     permissions:
       id-token: write
       contents: read
@@ -82,12 +85,49 @@ jobs:
             exit 1
           fi
 
-      - name: Determine the version from the tag
+      - name: Determine the version
         id: get_ver
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-          test -n "$SEM_VER"
-          echo "::set-output name=SEM_VER::$SEM_VER"
+          if [ "${{ github.event_name }}" != "release" ]; then
+            SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
+            test -n "$SEM_VER"
+            echo "version=$SEM_VER" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Determine tags
+        id: get_tags
+        run: |
+          # Set frontend tags
+          echo 'frontend-tags<<EOF' >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "dev" >> $GITHUB_OUTPUT
+          fi
+          echo "sublimesec/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+          # Set backend tags
+          echo 'backend-tags<<EOF' >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "dev" >> $GITHUB_OUTPUT
+          fi
+          echo "sublimesec/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
+
+          # Set manager tags
+          echo 'manager-tags<<EOF' >> $GITHUB_OUTPUT
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "dev" >> $GITHUB_OUTPUT
+          fi
+          echo "sublimesec/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr.outputs.registry }}/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.version }}" >> $GITHUB_OUTPUT
+          echo 'EOF' >> $GITHUB_OUTPUT
 
       - name: Login to DockerHub
         uses: docker/login-action@v1
@@ -108,10 +148,7 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
-          tags: |
-            sublimesec/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
+          tags: ${{ steps.get_tags.outputs.frontend-tags }}
 
       - name: Build BackEnd
         uses: docker/build-push-action@v2
@@ -120,10 +157,7 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
-          tags: |
-            sublimesec/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
+          tags: ${{ steps.get_tags.outputs.backend-tags }}
 
       - name: Build Manager
         uses: docker/build-push-action@v2
@@ -132,10 +166,7 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
-          tags: |
-            sublimesec/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr.outputs.registry }}/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
-            ${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
+          tags: ${{ steps.get_tags.outputs.manager-tags }}
 
       - name: Push FrontEnd
         env:
@@ -168,7 +199,7 @@ jobs:
     name: Build Manifest Image and Push
     needs: push_to_registry
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.event_name == 'release' && 'production' || 'dev'  }}
     permissions:
       id-token: write
       contents: read
@@ -234,81 +265,84 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Determine the version from the tag
+      - name: Determine the version
         id: get_ver
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
-          test -n "$SEM_VER"
-          echo "::set-output name=SEM_VER::$SEM_VER"
+          if [ "${{ github.event_name }}" != "release" ]; then
+            SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
+            test -n "$SEM_VER"
+            echo "version=$SEM_VER" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev" >> $GITHUB_OUTPUT
+          fi
 
       - name: Build and Push Final Manifests to ECR & DockerHub
         env:
-          SEM_VER: ${{ steps.get_ver.outputs.SEM_VER }}
-          MINOR_VERSION:  ${{ steps.get_ver.outputs.MINOR_VERSION }}
+          VERSION: ${{ steps.get_ver.outputs.version }}
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
           ECR_GC_REGISTRY: ${{ steps.login-ecr-gov-cloud.outputs.registry }}
         run: |
-          amd_tag=amd64-$SEM_VER
-          arm_tag=arm64-$SEM_VER
+          amd_tag=amd64-$VERSION
+          arm_tag=arm64-$VERSION
           
           # Backend
           docker_hub=sublimesec/strelka-backend
           ecr=$ECR_REGISTRY/strelka-backend
           ecr_gc=$ECR_GC_REGISTRY/strelka-backend
-          docker manifest create $docker_hub:$SEM_VER \
+          docker manifest create $docker_hub:$VERSION \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
-          docker manifest create $ecr:$SEM_VER \
+          docker manifest create $ecr:$VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
-          docker manifest create $ecr_gc:$SEM_VER \
+          docker manifest create $ecr_gc:$VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:$SEM_VER
-          docker manifest push $ecr:$SEM_VER
-          docker manifest push $ecr_gc:$SEM_VER
+          docker manifest push $docker_hub:$VERSION
+          docker manifest push $ecr:$VERSION
+          docker manifest push $ecr_gc:$VERSION
 
           # Frontend
           docker_hub=sublimesec/strelka-frontend
           ecr=$ECR_REGISTRY/strelka-frontend
           ecr_gc=$ECR_GC_REGISTRY/strelka-frontend
-          docker manifest create $docker_hub:$SEM_VER \
+          docker manifest create $docker_hub:$VERSION \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
-          docker manifest create $ecr:$SEM_VER \
+          docker manifest create $ecr:$VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
-          docker manifest create $ecr_gc:$SEM_VER \
+          docker manifest create $ecr_gc:$VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:$SEM_VER
-          docker manifest push $ecr:$SEM_VER
-          docker manifest push $ecr_gc:$SEM_VER
+          docker manifest push $docker_hub:$VERSION
+          docker manifest push $ecr:$VERSION
+          docker manifest push $ecr_gc:$VERSION
 
           # Manager
           docker_hub=sublimesec/strelka-manager
           ecr=$ECR_REGISTRY/strelka-manager
           ecr_gc=$ECR_GC_REGISTRY/strelka-manager
-          docker manifest create $docker_hub:$SEM_VER \
+          docker manifest create $docker_hub:$VERSION \
               $docker_hub:$amd_tag \
               $docker_hub:$arm_tag
-          docker manifest create $ecr:$SEM_VER \
+          docker manifest create $ecr:$VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
-          docker manifest create $ecr_gc:$SEM_VER \
+          docker manifest create $ecr_gc:$VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:$SEM_VER
-          docker manifest push $ecr:$SEM_VER
-          docker manifest push $ecr_gc:$SEM_VER
+          docker manifest push $docker_hub:$VERSION
+          docker manifest push $ecr:$VERSION
+          docker manifest push $ecr_gc:$VERSION
 
   validate_x_region_replication:
     name: Validate that ECR Images Have Propagated to All Regions
     runs-on: ubuntu-latest
-    environment: production
+    environment: ${{ github.event_name == 'release' && 'production' || 'dev'  }}
     permissions:
       id-token: write
       contents: read
@@ -336,10 +370,20 @@ jobs:
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
 
+      - name: Determine the version
+        id: get_ver
+        run: |
+          if [ "${{ github.event_name }}" != "release" ]; then
+            SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+\.[0-9]*")
+            test -n "$SEM_VER"
+            echo "version=$SEM_VER" >> $GITHUB_OUTPUT
+          else
+            echo "version=dev" >> $GITHUB_OUTPUT
+          fi          
+
       - name: Validate All X-Region Replication
         run: |
-          SEM_VER=$(echo "${{ github.ref }}" | grep -E -o "[0-9]+\.[0-9]+.[0-9]*")
-          .github/workflows/check_images_x_region.sh $SEM_VER
+          .github/workflows/check_images_x_region.sh ${{ steps.get_ver.outputs.version}}
           if [ $? != 0 ]; then
             exit 1
           fi
