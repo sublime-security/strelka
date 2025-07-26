@@ -29,6 +29,9 @@ olefile==0.46
 oletools==0.60.1
 opencv-python==4.8.1.78
 opencv-contrib-python==4.8.1.78
+Pillow>=9.0.0
+pillow-avif>=1.3.0
+pillow-heif>=0.10.0
 idna==3.10
 PyMuPDF==1.23.5
 pefile==2019.4.18

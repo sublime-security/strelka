@@ -257,6 +257,9 @@ scanners:
         flavors:
           - 'image/jpeg'
           - 'jpeg_file'
+      negative:
+        source:
+          - 'ScanTranscode'
       priority: 5
 #  'ScanJson':
 #    - positive:
@@ -517,6 +520,21 @@ scanners:
       priority: 5
       options:
         limit: 1000
+  'ScanTranscode':
+    - positive:
+        flavors:
+          - 'heif_file'
+          - 'heic_file'
+          - 'avif_file'
+          - 'image/heif'
+          - 'image/heic'
+          - 'image/avif'
+          - 'svg_file'
+          - 'image/svg+xml'
+      priority: 5
+      options:
+        output_format: 'jpeg'
+        max_file_size: 5242880  # 5MB in bytes
 #  'ScanTnef': Proprietary email format https://en.wikipedia.org/wiki/Transport_Neutral_Encapsulation_Format
 #    - positive:
 #        flavors:
