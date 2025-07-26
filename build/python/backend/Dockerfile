@@ -21,11 +21,13 @@ RUN apt-get -qq update && \
     gettext \
     git \
     g++ \
+    libavif-dev \
     libglu1-mesa \
     libleptonica-dev \
     libpango1.0-dev \
     libtool \
     make \
+    nasm \
     swig \
     tesseract-ocr-eng \
     python3-dev \
@@ -36,6 +38,7 @@ RUN apt-get -qq update && \
 # Install runtime packages
     antiword \
     libarchive-dev \
+    libavif15 \
     libfuzzy-dev \
     libmagic-dev \
     libssl-dev \

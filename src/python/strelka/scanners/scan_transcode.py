@@ -2,7 +2,6 @@ import io
 import logging
 
 import fitz  # PyMuPDF
-import pillow_avif
 from PIL import Image, UnidentifiedImageError
 from pillow_heif import register_heif_opener
 
@@ -10,9 +9,7 @@ from strelka import strelka
 
 logging.getLogger("PIL").setLevel(logging.WARNING)
 
-# Must be imported as a plugin, doesn't need to be used
-_ = pillow_avif.AvifImagePlugin
-
+# Register HEIF support
 register_heif_opener()
 
 
