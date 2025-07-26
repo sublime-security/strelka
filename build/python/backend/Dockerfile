@@ -38,7 +38,7 @@ RUN apt-get -qq update && \
 # Install runtime packages
     antiword \
     libarchive-dev \
-    libavif15 \
+    libavif13 \
     libfuzzy-dev \
     libmagic-dev \
     libssl-dev \
