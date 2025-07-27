@@ -75,10 +75,12 @@ class ScanTranscode(strelka.Scanner):
             if is_svg:
                 converted_image = convert_svg_with_pymupdf(data)
                 output_format = svg_output_format
+                input_format = "svg"
             else:
                 # Determine output format based on input format
                 img = Image.open(io.BytesIO(data))
                 if hasattr(img, 'format') and img.format:
+                    input_format = img.format.lower()
                     if img.format.upper() in ['HEIF', 'HEIC']:
                         output_format = heif_output_format
                     elif img.format.upper() == 'AVIF':
@@ -86,13 +88,14 @@ class ScanTranscode(strelka.Scanner):
                     else:
                         output_format = default_output_format
                 else:
+                    input_format = "unknown"
                     output_format = default_output_format
                 
                 converted_image = convert_with_pillow(img, output_format)
 
-            # Create extracted file for local Strelka framework
+            # Create descriptive filename following PDF scanner pattern
             extract_file = strelka.File(
-                name=file.name,
+                name=f"transcode_{input_format}_2_{output_format.lower()}",
                 source=self.name,
             )
 
