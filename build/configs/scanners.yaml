@@ -533,8 +533,11 @@ scanners:
           - 'image/svg+xml'
       priority: 5
       options:
-        output_format: 'jpeg'
-        max_file_size: 5242880  # 5MB in bytes
+        svg_output_format: 'png'     # SVG optimized for PNG (lossless vector→raster)
+        heif_output_format: 'jpeg'   # HEIF optimized for JPEG (photos, smaller files)
+        avif_output_format: 'jpeg'   # AVIF optimized for JPEG (photos, smaller files)
+        output_format: 'png'         # General fallback format
+        max_file_size: 5242880       # 5MB in bytes
 #  'ScanTnef': Proprietary email format https://en.wikipedia.org/wiki/Transport_Neutral_Encapsulation_Format
 #    - positive:
 #        flavors:

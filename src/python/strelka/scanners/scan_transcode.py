@@ -22,8 +22,13 @@ class ScanTranscode(strelka.Scanner):
     """
 
     def scan(self, data, file, options, expire_at):
-        output_format = options.get("output_format", "jpeg")
         max_file_size = options.get("max_file_size", 5 * 1024 * 1024)  # Default 5MB
+        
+        # Format-specific output options for optimization
+        svg_output_format = options.get("svg_output_format", "png")  # SVG optimized for PNG
+        heif_output_format = options.get("heif_output_format", "jpeg")  # HEIF optimized for JPEG  
+        avif_output_format = options.get("avif_output_format", "jpeg")  # AVIF optimized for JPEG
+        default_output_format = options.get("output_format", "png")  # General fallback
         
         # Check file size limit
         if len(data) > max_file_size:
@@ -32,16 +37,16 @@ class ScanTranscode(strelka.Scanner):
             self.event["max_file_size"] = max_file_size
             return
 
-        def convert_with_pillow(im):
+        def convert_with_pillow(im, format_type):
             with io.BytesIO() as f:
-                im.save(f, format=f"{output_format}", quality=90)
+                im.save(f, format=f"{format_type}", quality=90)
                 return f.getvalue()
 
         def convert_svg_with_pymupdf(svg_data):
-            """Convert SVG to PNG using PyMuPDF
+            """Convert SVG using PyMuPDF with format-specific optimization
             
-            Note: SVG files are always rendered to PNG first via PyMuPDF,
-            then optionally converted to the specified output_format via Pillow
+            Note: SVG files are rendered to PNG via PyMuPDF, then optionally 
+            converted to svg_output_format if different from PNG
             """
             try:
                 # Create a document from SVG data
@@ -53,10 +58,10 @@ class ScanTranscode(strelka.Scanner):
                 png_data = pix.tobytes("png")
                 doc.close()
                 
-                # If output format is not PNG, convert using Pillow
-                if output_format.lower() != "png":
+                # If SVG output format is not PNG, convert using Pillow
+                if svg_output_format.lower() != "png":
                     img = Image.open(io.BytesIO(png_data))
-                    return convert_with_pillow(img)
+                    return convert_with_pillow(img, svg_output_format)
                 else:
                     return png_data
             except Exception:
@@ -69,9 +74,21 @@ class ScanTranscode(strelka.Scanner):
         try:
             if is_svg:
                 converted_image = convert_svg_with_pymupdf(data)
+                output_format = svg_output_format
             else:
-                # Use Pillow for other formats (HEIF, HEIC, AVIF, etc.)
-                converted_image = convert_with_pillow(Image.open(io.BytesIO(data)))
+                # Determine output format based on input format
+                img = Image.open(io.BytesIO(data))
+                if hasattr(img, 'format') and img.format:
+                    if img.format.upper() in ['HEIF', 'HEIC']:
+                        output_format = heif_output_format
+                    elif img.format.upper() == 'AVIF':
+                        output_format = avif_output_format
+                    else:
+                        output_format = default_output_format
+                else:
+                    output_format = default_output_format
+                
+                converted_image = convert_with_pillow(img, output_format)
 
             # Create extracted file for local Strelka framework
             extract_file = strelka.File(
