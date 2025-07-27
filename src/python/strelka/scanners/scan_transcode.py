@@ -3,14 +3,14 @@ import logging
 
 import fitz  # PyMuPDF
 from PIL import Image, UnidentifiedImageError
-from pillow_heif import register_heif_opener
+import pi_heif
 
 from strelka import strelka
 
 logging.getLogger("PIL").setLevel(logging.WARNING)
 
 # Register HEIF support
-register_heif_opener()
+pi_heif.register_heif_opener()
 
 
 class ScanTranscode(strelka.Scanner):
