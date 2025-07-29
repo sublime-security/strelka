@@ -14,21 +14,20 @@ pi_heif.register_heif_opener()
 
 
 class ScanTranscode(strelka.Scanner):
-    """
-    Converts supported images for easier scanning
+    """Converts modern image formats to standard formats for analysis.
 
-    Supports HEIF, HEIC, AVIF (via Pillow) and SVG (via PyMuPDF)
-    Typical supported output options: gif webp jpeg bmp png tiff
+    Supports HEIF, HEIC, AVIF, and SVG conversion to PNG/JPEG.
+    Enables downstream OCR, QR code detection, and image analysis.
     """
 
     def scan(self, data, file, options, expire_at):
         max_file_size = options.get("max_file_size", 5 * 1024 * 1024)  # Default 5MB
         
-        # Format-specific output options for optimization
-        svg_output_format = options.get("svg_output_format", "png")  # SVG optimized for PNG
-        heif_output_format = options.get("heif_output_format", "jpeg")  # HEIF optimized for JPEG  
-        avif_output_format = options.get("avif_output_format", "jpeg")  # AVIF optimized for JPEG
-        default_output_format = options.get("output_format", "png")  # General fallback
+        # Format-specific output options
+        svg_output_format = options.get("svg_output_format", "png")
+        heif_output_format = options.get("heif_output_format", "jpeg")
+        avif_output_format = options.get("avif_output_format", "jpeg")
+        default_output_format = options.get("output_format", "png")
         
         # Check file size limit
         if len(data) > max_file_size:
@@ -37,53 +36,56 @@ class ScanTranscode(strelka.Scanner):
             self.event["max_file_size"] = max_file_size
             return
 
-        def convert_with_pillow(im, format_type):
+        def convert_image(im, format_type):
+            """Convert PIL Image to specified format."""
             with io.BytesIO() as f:
-                im.save(f, format=f"{format_type}", quality=90)
+                im.save(f, format=format_type.upper(), quality=90)
                 return f.getvalue()
 
-        def convert_svg_with_pymupdf(svg_data):
-            """Convert SVG using PyMuPDF with format-specific optimization
-            
-            Note: SVG files are rendered to PNG via PyMuPDF, then optionally 
-            converted to svg_output_format if different from PNG
-            """
+        def convert_svg(svg_data):
+            """Convert SVG to raster format using PyMuPDF."""
             try:
-                # Create a document from SVG data
                 doc = fitz.open("svg", svg_data)
                 page = doc[0]
-                
-                # Render page to a pixmap (default is PNG format)
-                pix = page.get_pixmap()
+                pix = page.get_pixmap(matrix=fitz.Matrix(1.0, 1.0))
                 png_data = pix.tobytes("png")
                 doc.close()
                 
-                # If SVG output format is not PNG, convert using Pillow
                 if svg_output_format.lower() != "png":
                     img = Image.open(io.BytesIO(png_data))
-                    return convert_with_pillow(img, svg_output_format)
+                    return convert_image(img, svg_output_format)
                 else:
                     return png_data
             except Exception:
                 raise UnidentifiedImageError("Failed to convert SVG")
 
-        # Check if this is an SVG file
-        is_svg = (b'<svg' in data[:1000].lower() or 
-                 b'<?xml' in data[:100] and b'<svg' in data[:2000].lower())
+        def detect_format(data):
+            """Detect image format from file header."""
+            header = data[:100].lower()
+            if b'<svg' in header:
+                return "svg"
+            if b'<?xml' in header and b'<svg' in data[:500].lower():
+                return "svg"
+            return None
+
+        # Detect format from file header
+        detected_format = detect_format(data)
 
         try:
-            if is_svg:
-                converted_image = convert_svg_with_pymupdf(data)
+            if detected_format == "svg":
+                converted_image = convert_svg(data)
                 output_format = svg_output_format
                 input_format = "svg"
             else:
-                # Determine output format based on input format
                 img = Image.open(io.BytesIO(data))
+                
                 if hasattr(img, 'format') and img.format:
                     input_format = img.format.lower()
-                    if img.format.upper() in ['HEIF', 'HEIC']:
+                    img_format_upper = img.format.upper()
+                    
+                    if img_format_upper in ['HEIF', 'HEIC']:
                         output_format = heif_output_format
-                    elif img.format.upper() == 'AVIF':
+                    elif img_format_upper == 'AVIF':
                         output_format = avif_output_format
                     else:
                         output_format = default_output_format
@@ -91,15 +93,15 @@ class ScanTranscode(strelka.Scanner):
                     input_format = "unknown"
                     output_format = default_output_format
                 
-                converted_image = convert_with_pillow(img, output_format)
+                converted_image = convert_image(img, output_format)
 
-            # Create descriptive filename following PDF scanner pattern
+            # Create output file
             extract_file = strelka.File(
                 name=f"transcode_{input_format}_2_{output_format.lower()}",
                 source=self.name,
             )
 
-            # Upload the converted image data to coordinator
+            # Upload converted image data
             for chunk in strelka.chunk_string(converted_image):
                 self.upload_to_coordinator(
                     extract_file.pointer,
