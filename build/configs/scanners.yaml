@@ -504,6 +504,8 @@ scanners:
           - 'svg_file'
           - 'image/svg+xml'
       priority: 5
+      options:
+        enable_raw: True
 #  'ScanSwf':
 #    - positive:
 #        flavors:

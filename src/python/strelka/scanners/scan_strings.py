@@ -20,6 +20,16 @@ class ScanStrings(strelka.Scanner):
 
     def scan(self, data, file, options, expire_at):
         limit = options.get('limit', 0)
+        enable_raw = options.get('enable_raw', False)
+        if enable_raw:
+            try: 
+                raw = data.decode("utf-8")
+                if isinstance(raw, str):
+                    self.event['raw'] = raw
+            except UnicodeDecodeError:
+                self.flags.append(f"unicode_decode_error_{file.uid}")
+            except ValueError:
+                self.flags.append(f"value_error_{file.uid}")
 
         strings = self.strings_regex.findall(data)
         if limit:
