@@ -38,14 +38,6 @@ class ScanTranscode(strelka.Scanner):
 
         def convert_image(im, format_type):
             """Convert PIL Image to specified format."""
-            # Handle RGBA images for formats that don't support alpha channels
-            if im.mode == 'RGBA' and format_type.upper() in ['JPEG', 'JPG']:
-                # Convert RGBA to RGB by compositing against white background
-                rgb_im = Image.new('RGB', im.size, (255, 255, 255))
-                rgb_im.paste(im, mask=im.split()[-1])  # Use alpha channel as mask
-                im = rgb_im
-                self.flags.append("converted_rgba_to_rgb")
-            
             with io.BytesIO() as f:
                 im.save(f, format=format_type.upper(), quality=90)
                 return f.getvalue()
@@ -92,11 +84,16 @@ class ScanTranscode(strelka.Scanner):
                     img_format_upper = img.format.upper()
                     
                     if img_format_upper in ['HEIF', 'HEIC']:
-                        output_format = heif_output_format
+                        # Use PNG for RGBA images (faster, supports transparency)
+                        output_format = 'png' if img.mode == 'RGBA' else heif_output_format
                     elif img_format_upper == 'AVIF':
-                        output_format = avif_output_format
+                        output_format = 'png' if img.mode == 'RGBA' else avif_output_format
                     else:
-                        output_format = default_output_format
+                        output_format = 'png' if img.mode == 'RGBA' else default_output_format
+                        
+                    # Track when we auto-switch to PNG for RGBA
+                    if img.mode == 'RGBA' and output_format == 'png':
+                        self.flags.append("auto_switched_to_png")
                 else:
                     input_format = "unknown"
                     output_format = default_output_format
