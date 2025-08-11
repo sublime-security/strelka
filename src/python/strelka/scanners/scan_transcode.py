@@ -38,6 +38,14 @@ class ScanTranscode(strelka.Scanner):
 
         def convert_image(im, format_type):
             """Convert PIL Image to specified format."""
+            # Handle RGBA images for formats that don't support alpha channels
+            if im.mode == 'RGBA' and format_type.upper() in ['JPEG', 'JPG']:
+                # Convert RGBA to RGB by compositing against white background
+                rgb_im = Image.new('RGB', im.size, (255, 255, 255))
+                rgb_im.paste(im, mask=im.split()[-1])  # Use alpha channel as mask
+                im = rgb_im
+                self.flags.append("converted_rgba_to_rgb")
+            
             with io.BytesIO() as f:
                 im.save(f, format=format_type.upper(), quality=90)
                 return f.getvalue()
@@ -110,6 +118,10 @@ class ScanTranscode(strelka.Scanner):
                 )
 
             self.files.append(extract_file)
+            
+            # Add conversion metadata
+            self.event["input_format"] = input_format
+            self.event["output_format"] = output_format
 
         except UnidentifiedImageError:
             self.flags.append("unidentified_image")
