@@ -437,7 +437,6 @@ class Backend(object):
                 if re.search(neg_filename, file.name):
                     return {}
             if neg_source:
-                print(file.source, neg_source)
                 if file.source in neg_source:
                     return {}
             for pos_flavor in pos_flavors:
