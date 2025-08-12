@@ -435,11 +435,10 @@ class Backend(object):
                     return None
             if neg_filename:
                 if re.search(neg_filename, file.name):
-                    return {}
+                    return None
             if neg_source:
-                print(file.source, neg_source)
                 if file.source in neg_source:
-                    return {}
+                    return None
             for pos_flavor in pos_flavors:
                 if pos_flavor == '*' or pos_flavor in flavors:
                     return assigned

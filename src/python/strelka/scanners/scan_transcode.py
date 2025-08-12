@@ -84,11 +84,16 @@ class ScanTranscode(strelka.Scanner):
                     img_format_upper = img.format.upper()
                     
                     if img_format_upper in ['HEIF', 'HEIC']:
-                        output_format = heif_output_format
+                        # Use PNG for RGBA images (faster, supports transparency)
+                        output_format = 'png' if img.mode == 'RGBA' else heif_output_format
                     elif img_format_upper == 'AVIF':
-                        output_format = avif_output_format
+                        output_format = 'png' if img.mode == 'RGBA' else avif_output_format
                     else:
-                        output_format = default_output_format
+                        output_format = 'png' if img.mode == 'RGBA' else default_output_format
+                        
+                    # Track when we auto-switch to PNG for RGBA
+                    if img.mode == 'RGBA' and output_format == 'png':
+                        self.flags.append("auto_switched_to_png")
                 else:
                     input_format = "unknown"
                     output_format = default_output_format
@@ -110,6 +115,10 @@ class ScanTranscode(strelka.Scanner):
                 )
 
             self.files.append(extract_file)
+            
+            # Add conversion metadata
+            self.event["input_format"] = input_format
+            self.event["output_format"] = output_format
 
         except UnidentifiedImageError:
             self.flags.append("unidentified_image")
