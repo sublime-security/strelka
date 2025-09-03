@@ -502,8 +502,6 @@ scanners:
           - 'plist_file'
           - 'rtf_file'
           - 'soap_file'
-          - 'text/calendar'
-          - 'application/ics'
           - 'text/html'
           - 'text/plain'
           - 'text/rtf'

@@ -6,32 +6,57 @@ from strelka import strelka
 class ScanIcs(strelka.Scanner):
     """Extracts metadata and embedded files from iCalendar (ICS) files.
     
-    This scanner processes RFC5545 compliant iCalendar files, extracting:
-    - Calendar metadata (PRODID, VERSION, METHOD, etc.)
-    - Event details (VEVENT)  
-    - Todo items (VTODO)
-    - Journal entries (VJOURNAL)
-    - Timezone information (VTIMEZONE)
-    - Attendee information with parsed details
-    - Embedded attachments (vBinary) as extractable files
-    - URI attachments for analysis
+    This scanner processes RFC5545 compliant iCalendar files commonly used for
+    calendar invitations, meeting requests, and event sharing. It provides both
+    structured metadata extraction and security analysis capabilities.
     
+    Key Features:
+    - Calendar metadata extraction (PRODID, VERSION, METHOD, etc.)
+    - Component analysis (VEVENT, VTODO, VJOURNAL, VTIMEZONE, VALARM)
+    - Attendee and organizer information parsing
+    - Attachment extraction with multiple format support:
+      * vBinary objects (traditional base64 embedded files)
+      * Data URIs (data:mime/type;base64,content)
+      * Base64 binary attachments (ENCODING=BASE64 parameter)
+      * Regular URIs (stored as metadata)
+    - Human-readable duration formatting (e.g., "-15m" instead of "-1 day, 23:45:00")
+
     Dependencies:
-        - icalendar library
+        - icalendar library (tested with 6.3.1)
     """
 
     def scan(self, data, file, options, expire_at):
+        """Main scanning function that processes ICS file data.
+        
+        Args:
+            data: Raw ICS file bytes
+            file: Strelka File object
+            options: Scanner configuration options
+            expire_at: File expiration timestamp
+        """
+        # Calendar bomb protection: Limits prevent resource exhaustion while 
+        # preserving attack detection through total counts and flags
+        self.limits = {
+            'max_components': options.get('max_components', 1000),
+            'max_attendees_per_component': options.get('max_attendees_per_component', 100),
+            'max_organizers_per_component': options.get('max_organizers_per_component', 10),
+            'max_attachments_per_component': options.get('max_attachments_per_component', 50)
+        }
+        
+        # Track totals for both analysis and bomb detection
+        # Total counts continue even when storage limits are hit
         self.event['total'] = {
-            'components': 0,
-            'events': 0, 
-            'todos': 0,
-            'journals': 0,
-            'timezones': 0,
-            'alarms': 0,
-            'attachments': 0,
-            'extracted_files': 0,
-            'attendees': 0,
-            'organizers': 0
+            'components': 0,      # All calendar components (VEVENT, VTODO, etc.)
+            'events': 0,          # VEVENT components
+            'todos': 0,           # VTODO components  
+            'journals': 0,        # VJOURNAL components
+            'timezones': 0,       # VTIMEZONE components
+            'alarms': 0,          # VALARM components
+            'attachments': 0,     # All ATTACH properties
+            'extracted_files': 0, # Successfully extracted attachment files
+            'attendees': 0,       # All ATTENDEE properties across components
+            'organizers': 0,      # All ORGANIZER properties across components
+            'urls': 0             # All URL properties (potential phishing/C2 links)
         }
         
         try:
@@ -50,10 +75,16 @@ class ScanIcs(strelka.Scanner):
                 # Process all components in the calendar
                 cal_data['components'] = []
                 for component in cal.walk():
-                    comp_data = self._process_component(component, expire_at)
-                    if comp_data:
-                        cal_data['components'].append(comp_data)
-                        self.event['total']['components'] += 1
+                    self.event['total']['components'] += 1
+                    
+                    # Limit stored components to prevent memory exhaustion
+                    if len(cal_data['components']) < self.limits['max_components']:
+                        comp_data = self._process_component(component, expire_at)
+                        if comp_data:
+                            cal_data['components'].append(comp_data)
+                    else:
+                        # Still count but don't store - indicates potential bomb
+                        self.flags.append(f'component_limit_exceeded_{self.limits["max_components"]}')
                 
                 self.event['calendars'].append(cal_data)
             
@@ -63,17 +94,14 @@ class ScanIcs(strelka.Scanner):
 
     def _extract_calendar_metadata(self, calendar):
         """Extract top-level calendar metadata."""
-        metadata = {
-            'properties': []
-        }
+        metadata = {}
         
-        # Extract all calendar-level properties as array of dicts
-        for prop, value in calendar.items():
-            prop_data = {
-                'name': prop,
-                'value': self._serialize_property_value(value)
-            }
-            metadata['properties'].append(prop_data)
+        # Extract key calendar fields for convenience
+        calendar_convenience_fields = ['PRODID', 'VERSION', 'METHOD', 'CALSCALE', 'NAME', 'DESCRIPTION']
+        for field_name in calendar_convenience_fields:
+            if field_name in calendar:
+                convenience_field = field_name.lower()
+                metadata[convenience_field] = self._serialize_property_value(calendar[field_name])
         
         return metadata
 
@@ -85,10 +113,10 @@ class ScanIcs(strelka.Scanner):
             
         comp_data = {
             'type': comp_name,
-            'properties': [],
             'attendees': [],
             'organizers': [],
-            'attachments': []
+            'attachments': [],
+            'urls': []
         }
         
         # Track component types
@@ -109,27 +137,40 @@ class ScanIcs(strelka.Scanner):
                 # Handle both single attendee and list of attendees
                 attendees = value if isinstance(value, list) else [value]
                 for attendee in attendees:
-                    attendee_data = self._extract_attendee_data(attendee)
-                    comp_data['attendees'].append(attendee_data)
                     self.event['total']['attendees'] += 1
+                    
+                    # Limit stored attendees per component
+                    if len(comp_data['attendees']) < self.limits['max_attendees_per_component']:
+                        attendee_data = self._extract_attendee_data(attendee)
+                        comp_data['attendees'].append(attendee_data)
+                    else:
+                        self.flags.append(f'attendee_limit_exceeded_per_component_{self.limits["max_attendees_per_component"]}')
                 
             elif prop == 'ORGANIZER':
-                organizer_data = self._extract_organizer_data(value)
-                comp_data['organizers'].append(organizer_data)
                 self.event['total']['organizers'] += 1
                 
+                # Limit stored organizers per component
+                if len(comp_data['organizers']) < self.limits['max_organizers_per_component']:
+                    organizer_data = self._extract_organizer_data(value)
+                    comp_data['organizers'].append(organizer_data)
+                else:
+                    self.flags.append(f'organizer_limit_exceeded_per_component_{self.limits["max_organizers_per_component"]}')
+                
             elif prop == 'ATTACH':
-                attachment_data = self._process_attachment(value, expire_at)
-                comp_data['attachments'].append(attachment_data)
                 self.event['total']['attachments'] += 1
                 
-            else:
-                # Store all other properties
-                prop_data = {
-                    'name': prop,
-                    'value': self._serialize_property_value(value)
-                }
-                comp_data['properties'].append(prop_data)
+                # Limit stored attachments per component  
+                if len(comp_data['attachments']) < self.limits['max_attachments_per_component']:
+                    attachment_data = self._process_attachment(value, expire_at)
+                    comp_data['attachments'].append(attachment_data)
+                else:
+                    self.flags.append(f'attachment_limit_exceeded_per_component_{self.limits["max_attachments_per_component"]}')
+            
+            elif prop == 'URL':
+                self.event['total']['urls'] += 1
+                comp_data['urls'].append(self._serialize_property_value(value))
+                
+            # Skip storing individual properties - only keep convenience fields
         
         # Extract key fields to parent level based on component type
         self._extract_component_convenience_fields(comp_data, component)
@@ -171,170 +212,260 @@ class ScanIcs(strelka.Scanner):
         """Extract clean datetime/date/duration values from icalendar objects."""
         # Check if it has the .dt property (vDDDTypes, vDuration, etc.)
         if hasattr(dt_value, 'dt'):
-            return dt_value.dt
+            dt_obj = dt_value.dt
+            # Check if it's a timedelta (duration like TRIGGER:-PT15M)
+            if hasattr(dt_obj, 'total_seconds'):
+                return self._format_duration(dt_obj)
+            # Convert date/datetime objects to ISO strings for JSON serialization
+            elif hasattr(dt_obj, 'isoformat'):
+                return dt_obj.isoformat()
+            else:
+                return str(dt_obj)
+        # Check if it has the .td property (vDuration -> timedelta)
+        elif hasattr(dt_value, 'td'):
+            return self._format_duration(dt_value.td)  # Convert timedelta to readable format
         # Fallback to string serialization
         else:
             return self._serialize_property_value(dt_value)
 
+    def _format_duration(self, td):
+        """Format timedelta objects into human-readable strings.
+        
+        Converts confusing Python timedelta representations like "-1 day, 23:45:00"
+        into clear, analyst-friendly formats like "-15m".
+        
+        Common use cases:
+        - TRIGGER:-PT15M becomes "-15m" (15 minutes before event)
+        - DURATION:PT1H30M becomes "1h30m" (1 hour 30 minute duration)
+        
+        Args:
+            td: datetime.timedelta object
+            
+        Returns:
+            str: Human-readable duration (e.g., "-15m", "2h", "1d", "30s")
+        """
+        total_seconds = int(td.total_seconds())
+        
+        if total_seconds == 0:
+            return "0"
+        
+        # Handle negative durations (common in TRIGGER properties)
+        sign = "-" if total_seconds < 0 else ""
+        total_seconds = abs(total_seconds)
+        
+        # Break down into time units
+        days = total_seconds // 86400
+        hours = (total_seconds % 86400) // 3600
+        minutes = (total_seconds % 3600) // 60
+        seconds = total_seconds % 60
+        
+        # Build readable format prioritizing larger units
+        parts = []
+        if days:
+            parts.append(f"{days}d")
+        if hours:
+            parts.append(f"{hours}h")
+        if minutes:
+            parts.append(f"{minutes}m")
+        if seconds and not (days or hours or minutes):  # Only show seconds if it's the only unit
+            parts.append(f"{seconds}s")
+        
+        return sign + "".join(parts) if parts else f"{sign}{total_seconds}s"
+
     def _extract_attendee_data(self, attendee):
         """Extract attendee information with parsed details."""
         attendee_data = {
-            'params': [],
             'email': None,
             'name': None,
             'role': None,
             'partstat': None,
-            'rsvp': None,
-            'raw': str(attendee)
+            'rsvp': None
         }
         
         # Handle vCalAddress objects using built-in properties
         if isinstance(attendee, vCalAddress):
-            # Use the built-in properties directly
             attendee_data['email'] = attendee.email
             attendee_data['name'] = attendee.name
             attendee_data['role'] = attendee.params.get('ROLE') if hasattr(attendee, 'params') else None
             attendee_data['partstat'] = attendee.params.get('PARTSTAT') if hasattr(attendee, 'params') else None
             attendee_data['rsvp'] = attendee.params.get('RSVP') if hasattr(attendee, 'params') else None
-            
-            # Extract all parameters as array of dicts for forensics
-            if hasattr(attendee, 'params'):
-                for param_name, param_value in attendee.params.items():
-                    param_data = {
-                        'name': param_name,
-                        'value': param_value
-                    }
-                    attendee_data['params'].append(param_data)
         
-        else:
-            # Fallback for non-vCalAddress types
-            attendee_str = str(attendee)
-            if attendee_str.startswith('mailto:'):
-                attendee_data['email'] = attendee_str[7:]  # Remove 'mailto:' prefix
-            else:
-                attendee_data['email'] = attendee_str
-            
         return attendee_data
 
     def _extract_organizer_data(self, organizer):
         """Extract organizer information with parsed details."""
         organizer_data = {
-            'params': [],
             'email': None,
-            'name': None,
-            'raw': str(organizer)
+            'name': None
         }
         
         # Handle vCalAddress objects using built-in properties
         if isinstance(organizer, vCalAddress):
-            # Use the built-in properties directly
             organizer_data['email'] = organizer.email
             organizer_data['name'] = organizer.name
-            
-            # Extract all parameters as array of dicts for forensics
-            if hasattr(organizer, 'params'):
-                for param_name, param_value in organizer.params.items():
-                    param_data = {
-                        'name': param_name,
-                        'value': param_value
-                    }
-                    organizer_data['params'].append(param_data)
         
-        else:
-            # Fallback for non-vCalAddress types
-            organizer_str = str(organizer)
-            if organizer_str.startswith('mailto:'):
-                organizer_data['email'] = organizer_str[7:]  # Remove 'mailto:' prefix
-            else:
-                organizer_data['email'] = organizer_str
-                
         return organizer_data
 
     def _process_attachment(self, attachment, expire_at):
-        """Process ATTACH properties, handling both vBinary and vUri."""
+        """Process ATTACH properties - the primary attack vector in malicious ICS files.
+        
+        Handles multiple attachment formats found in the wild:
+        1. vBinary objects - Traditional icalendar embedded files
+        2. Data URIs - Self-contained base64 data (data:mime/type;base64,content)
+        3. Base64 binary - ENCODING=BASE64 parameter format
+        4. Regular URIs - External file references
+        
+        Security note: Attachments are the main way malware is distributed via
+        calendar files. This method extracts embedded content for analysis while
+        flagging suspicious patterns.
+        
+        Args:
+            attachment: icalendar attachment object (vBinary, vUri, or string)
+            expire_at: File expiration timestamp
+            
+        Returns:
+            dict: Attachment metadata with type, size, filename, extraction status
+        """
         attachment_data = {
-            'type': None,
-            'params': [],
-            'raw': str(attachment)
+            'type': 'other',
+            'params': self._extract_params(attachment)
         }
         
-        # Extract parameters as array of dicts if available
-        if hasattr(attachment, 'params'):
-            for param_name, param_value in attachment.params.items():
-                param_data = {
-                    'name': param_name,
-                    'value': param_value
-                }
-                attachment_data['params'].append(param_data)
-        
-        # Handle vBinary attachments (base64 encoded files)
+        # Classify attachment type and extract if possible
         if isinstance(attachment, vBinary):
+            # Traditional icalendar binary attachment
             attachment_data['type'] = 'binary'
+            self._extract_binary_attachment(attachment.obj, attachment_data, expire_at)
             
-            try:
-                # Use the .obj property to get the raw binary data
-                decoded_data = attachment.obj
-                
-                # Determine filename from parameters
-                filename = None
-                mime_type = None
-                for param in attachment_data['params']:
-                    param_name = param.get('name', '')
-                    param_value = param.get('value', '')
-                    if param_name in ['X-FILENAME', 'FILENAME']:
-                        filename = param_value
-                    elif param_name == 'FMTTYPE':
-                        mime_type = param_value
-                
-                if not filename:
-                    filename = f'ics_attachment_{self.event["total"]["attachments"]}'
-                
-                # Create extracted file
-                extract_file = strelka.File(
-                    name=filename,
-                    source=self.name,
-                )
-                
-                # Add MIME type flavor if available
-                if mime_type:
-                    extract_file.add_flavors({'external': [mime_type]})
-                    attachment_data['mime_type'] = mime_type
-                
-                # Upload the decoded data to be processed
-                for c in strelka.chunk_string(decoded_data):
-                    self.upload_to_coordinator(
-                        extract_file.pointer,
-                        c,
-                        expire_at,
-                    )
-                
-                self.files.append(extract_file)
-                self.event['total']['extracted_files'] += 1
-                
-                attachment_data['extracted'] = True
-                attachment_data['size'] = str(len(decoded_data))
-                attachment_data['filename'] = filename
-                
-            except Exception as e:
-                self.flags.append('attachment_decode_error')
-                attachment_data['decode_error'] = str(e)
-        
-        # Handle vUri attachments (URI references)
-        elif isinstance(attachment, vUri):
-            attachment_data['type'] = 'uri'
-            # vUri inherits from str, so str() gives us the clean URI
-            attachment_data['uri'] = str(attachment)
+        elif isinstance(attachment, vUri) or self._is_uri(str(attachment)):
+            uri = str(attachment)
             
-        else:
-            # Handle other attachment types - check if it looks like a URI
-            attachment_str = str(attachment)
-            if self._is_uri(attachment_str):
-                attachment_data['type'] = 'uri'
-                attachment_data['uri'] = attachment_str
+            # Data URI with embedded base64 content
+            if uri.startswith('data:') and ';base64,' in uri:
+                attachment_data['type'] = 'data_uri'
+                attachment_data['uri'] = uri  # Keep data URIs for analysis
+                self._extract_data_uri(uri, attachment_data, expire_at)
+            # Base64 binary with ENCODING parameter (common in Outlook/Exchange)
+            elif self._get_param_value(attachment_data['params'], 'ENCODING') == 'BASE64':
+                attachment_data['type'] = 'base64_binary'
+                # Skip storing massive base64 string - just extract the file
+                self._extract_base64_binary_attachment(uri, attachment_data, expire_at)
             else:
-                attachment_data['type'] = 'other'
+                # Regular URI reference to external file
+                attachment_data['type'] = 'uri'
+                attachment_data['uri'] = uri  # Store for IOC analysis
             
         return attachment_data
+    
+    def _extract_params(self, attachment):
+        """Extract parameters from attachment object."""
+        params = []
+        if hasattr(attachment, 'params'):
+            for param_name, param_value in attachment.params.items():
+                params.append({
+                    'name': param_name,
+                    'value': param_value
+                })
+        return params
+    
+    def _extract_binary_attachment(self, binary_data, attachment_data, expire_at):
+        """Extract binary attachment data."""
+        try:
+            mime_type = self._get_param_value(attachment_data['params'], 'FMTTYPE')
+            filename = self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME'])
+            
+            if not filename:
+                filename = f'ics_attachment_{self.event["total"]["attachments"]}'
+            
+            self._create_extracted_file(binary_data, filename, mime_type, attachment_data, expire_at)
+            
+        except Exception as e:
+            self.flags.append('attachment_decode_error')
+            attachment_data['decode_error'] = str(e)
+    
+    def _extract_data_uri(self, data_uri, attachment_data, expire_at):
+        """Extract file from data URI with base64 content."""
+        try:
+            import base64
+            
+            if ';base64,' not in data_uri:
+                return
+                
+            header, encoded_data = data_uri.split(';base64,', 1)
+            mime_type = header.replace('data:', '')
+            decoded_data = base64.b64decode(encoded_data)
+            
+            filename = (self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME']) or 
+                       self._generate_filename(mime_type))
+            
+            self._create_extracted_file(decoded_data, filename, mime_type, attachment_data, expire_at)
+            
+        except Exception as e:
+            self.flags.append('data_uri_decode_error')
+            attachment_data['decode_error'] = str(e)
+    
+    def _extract_base64_binary_attachment(self, base64_data, attachment_data, expire_at):
+        """Extract base64-encoded binary attachment (ENCODING=BASE64)."""
+        try:
+            import base64
+            
+            # Decode base64 data
+            decoded_data = base64.b64decode(base64_data)
+            
+            # Get filename and mime type from parameters
+            filename = self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME'])
+            mime_type = self._get_param_value(attachment_data['params'], 'FMTTYPE')
+            
+            if not filename:
+                filename = f'ics_attachment_{self.event["total"]["attachments"]}'
+            
+            self._create_extracted_file(decoded_data, filename, mime_type, attachment_data, expire_at)
+            
+        except Exception as e:
+            self.flags.append('base64_binary_decode_error')
+            attachment_data['decode_error'] = str(e)
+    
+    def _get_param_value(self, params, param_names):
+        """Get parameter value by name(s)."""
+        if isinstance(param_names, str):
+            param_names = [param_names]
+        
+        for param in params:
+            if param.get('name') in param_names:
+                return param.get('value')
+        return None
+    
+    def _generate_filename(self, mime_type):
+        """Generate filename from MIME type."""
+        ext_map = {
+            'application/pdf': '.pdf',
+            'text/plain': '.txt', 
+            'application/json': '.json',
+            'image/png': '.png',
+            'image/jpeg': '.jpg'
+        }
+        ext = ext_map.get(mime_type, '.bin')
+        return f'ics_data_uri_{self.event["total"]["attachments"]}{ext}'
+    
+    def _create_extracted_file(self, data, filename, mime_type, attachment_data, expire_at):
+        """Create and upload extracted file."""
+        extract_file = strelka.File(name=filename, source=self.name)
+        
+        if mime_type:
+            extract_file.add_flavors({'external': [mime_type]})
+            attachment_data['mime_type'] = mime_type
+        
+        for c in strelka.chunk_string(data):
+            self.upload_to_coordinator(extract_file.pointer, c, expire_at)
+        
+        self.files.append(extract_file)
+        self.event['total']['extracted_files'] += 1
+        
+        attachment_data.update({
+            'extracted': True,
+            'size': str(len(data)),
+            'filename': filename
+        })
 
     def _is_uri(self, value):
         """Check if a string value appears to be a URI."""
