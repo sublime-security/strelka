@@ -315,6 +315,18 @@ rule xfdf_file {
         $a at 0
 }
 
+rule ics_file {
+    meta:
+        description = "iCalendar file (RFC 5545)"
+        type = "document"
+    strings:
+        $begin_cal = "BEGIN:VCALENDAR"
+        $end_cal = "END:VCALENDAR"
+        $version = "VERSION:2.0"
+    condition:
+        $begin_cal at 0 and $end_cal and ($version in (0..200))
+}
+
 // Email Files
 
 rule email_file {

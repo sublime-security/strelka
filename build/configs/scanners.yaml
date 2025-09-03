@@ -223,6 +223,13 @@ scanners:
       priority: 5
       options:
         parser: "html5lib"
+  'ScanIcs':
+    - positive:
+        flavors:
+          - 'ics_file'
+          - 'text/calendar'
+          - 'application/ics'
+      priority: 5
 #  'ScanIni':
 #    - positive:
 #        filename: '(\.([Cc][Ff][Gg]|[Ii][Nn][Ii])|PROJECT)$'
