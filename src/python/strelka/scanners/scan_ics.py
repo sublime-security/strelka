@@ -106,9 +106,12 @@ class ScanIcs(strelka.Scanner):
         # Process all properties in the component
         for prop, value in component.items():
             if prop == 'ATTENDEE':
-                attendee_data = self._extract_attendee_data(value)
-                comp_data['attendees'].append(attendee_data)
-                self.event['total']['attendees'] += 1
+                # Handle both single attendee and list of attendees
+                attendees = value if isinstance(value, list) else [value]
+                for attendee in attendees:
+                    attendee_data = self._extract_attendee_data(attendee)
+                    comp_data['attendees'].append(attendee_data)
+                    self.event['total']['attendees'] += 1
                 
             elif prop == 'ORGANIZER':
                 organizer_data = self._extract_organizer_data(value)
