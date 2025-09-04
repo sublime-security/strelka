@@ -101,7 +101,7 @@ class ScanIcs(strelka.Scanner):
         for field_name in calendar_convenience_fields:
             if field_name in calendar:
                 convenience_field = field_name.lower()
-                metadata[convenience_field] = self._serialize_property_value(calendar[field_name])
+                metadata[convenience_field] = str(calendar[field_name])
         
         return metadata
 
@@ -171,7 +171,7 @@ class ScanIcs(strelka.Scanner):
             
             elif prop == 'URL':
                 self.event['total']['urls'] += 1
-                comp_data['urls'].append(self._serialize_property_value(value))
+                comp_data['urls'].append(str(value))
                 
             # Skip storing individual properties - only keep convenience fields
         
@@ -209,7 +209,7 @@ class ScanIcs(strelka.Scanner):
                 if field_name in ['DTSTART', 'DTEND', 'DUE', 'DURATION', 'DTSTAMP', 'CREATED', 'LAST-MODIFIED', 'TRIGGER']:
                     comp_data[convenience_field] = self._extract_datetime_value(component[field_name])
                 else:
-                    comp_data[convenience_field] = self._serialize_property_value(component[field_name])
+                    comp_data[convenience_field] = str(component[field_name])
 
     def _extract_datetime_value(self, dt_value):
         """Extract clean datetime/date/duration values from icalendar objects."""
@@ -229,7 +229,7 @@ class ScanIcs(strelka.Scanner):
             return self._format_duration(dt_value.td)  # Convert timedelta to readable format
         # Fallback to string serialization
         else:
-            return self._serialize_property_value(dt_value)
+            return str(dt_value)
 
     def _format_duration(self, td):
         """Format timedelta objects into human-readable strings.
@@ -344,10 +344,10 @@ class ScanIcs(strelka.Scanner):
         elif isinstance(attachment, vUri) or self._is_uri(str(attachment)):
             uri = str(attachment)
             
-            # Data URI with embedded base64 content
+            # Data URI with embedded base64 content (treat as binary)
             if uri.startswith('data:') and ';base64,' in uri:
-                attachment_data['type'] = 'data_uri'
-                attachment_data['uri'] = uri  # Keep data URIs for analysis
+                attachment_data['type'] = 'binary'
+                # Don't store massive base64 data - just extract the file
                 self._extract_data_uri(uri, attachment_data, expire_at)
             # Base64 binary with ENCODING parameter (common in Outlook/Exchange)
             elif self._get_param_value(attachment_data['params'], 'ENCODING') == 'BASE64':
@@ -477,13 +477,3 @@ class ScanIcs(strelka.Scanner):
         value_lower = value.lower()
         return any(value_lower.startswith(f'{scheme}:') for scheme in uri_schemes)
 
-    def _serialize_property_value(self, value):
-        """Serialize property values for JSON storage."""
-        if hasattr(value, 'to_ical'):
-            ical_value = value.to_ical()
-            if isinstance(ical_value, bytes):
-                return ical_value.decode('utf-8', errors='ignore')
-            else:
-                return str(ical_value)
-        else:
-            return str(value)
