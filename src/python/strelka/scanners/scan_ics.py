@@ -157,14 +157,17 @@ class ScanIcs(strelka.Scanner):
                     self.flags.append(f'organizer_limit_exceeded_per_component_{self.limits["max_organizers_per_component"]}')
                 
             elif prop == 'ATTACH':
-                self.event['total']['attachments'] += 1
-                
-                # Limit stored attachments per component  
-                if len(comp_data['attachments']) < self.limits['max_attachments_per_component']:
-                    attachment_data = self._process_attachment(value, expire_at)
-                    comp_data['attachments'].append(attachment_data)
-                else:
-                    self.flags.append(f'attachment_limit_exceeded_per_component_{self.limits["max_attachments_per_component"]}')
+                # Handle both single attachment and list of attachments
+                attachments = value if isinstance(value, list) else [value]
+                for attachment in attachments:
+                    self.event['total']['attachments'] += 1
+                    
+                    # Limit stored attachments per component  
+                    if len(comp_data['attachments']) < self.limits['max_attachments_per_component']:
+                        attachment_data = self._process_attachment(attachment, expire_at)
+                        comp_data['attachments'].append(attachment_data)
+                    else:
+                        self.flags.append(f'attachment_limit_exceeded_per_component_{self.limits["max_attachments_per_component"]}')
             
             elif prop == 'URL':
                 self.event['total']['urls'] += 1
@@ -330,6 +333,7 @@ class ScanIcs(strelka.Scanner):
             'type': 'other',
             'params': self._extract_params(attachment)
         }
+        
         
         # Classify attachment type and extract if possible
         if isinstance(attachment, vBinary):
