@@ -397,7 +397,14 @@ class ScanIcs(strelka.Scanner):
             if not filename:
                 filename = f'ics_attachment_{self.event["total"]["attachments"]}'
             
-            self._create_extracted_file(binary_data, filename, mime_type, attachment_data, expire_at)
+            extract_file = self._create_extracted_file(binary_data, filename, mime_type, expire_at)
+            
+            # Update attachment metadata
+            attachment_data['extracted'] = True
+            attachment_data['size'] = str(len(binary_data))
+            if mime_type:
+                attachment_data['mime_type'] = mime_type
+            attachment_data['filename'] = filename
             
         except Exception as e:
             self.flags.append('attachment_decode_error')
@@ -418,7 +425,14 @@ class ScanIcs(strelka.Scanner):
             filename = (self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME']) or 
                        self._generate_filename(mime_type))
             
-            self._create_extracted_file(decoded_data, filename, mime_type, attachment_data, expire_at)
+            extract_file = self._create_extracted_file(decoded_data, filename, mime_type, expire_at)
+            
+            # Update attachment metadata
+            attachment_data['extracted'] = True
+            attachment_data['size'] = str(len(decoded_data))
+            if mime_type:
+                attachment_data['mime_type'] = mime_type
+            attachment_data['filename'] = filename
             
         except Exception as e:
             self.flags.append('data_uri_decode_error')
@@ -439,7 +453,14 @@ class ScanIcs(strelka.Scanner):
             if not filename:
                 filename = f'ics_attachment_{self.event["total"]["attachments"]}'
             
-            self._create_extracted_file(decoded_data, filename, mime_type, attachment_data, expire_at)
+            extract_file = self._create_extracted_file(decoded_data, filename, mime_type, expire_at)
+            
+            # Update attachment metadata
+            attachment_data['extracted'] = True
+            attachment_data['size'] = str(len(decoded_data))
+            if mime_type:
+                attachment_data['mime_type'] = mime_type
+            attachment_data['filename'] = filename
             
         except Exception as e:
             self.flags.append('base64_binary_decode_error')
@@ -467,13 +488,12 @@ class ScanIcs(strelka.Scanner):
         ext = ext_map.get(mime_type, '.bin')
         return f'ics_data_uri_{self.event["total"]["attachments"]}{ext}'
     
-    def _create_extracted_file(self, data, filename, mime_type, attachment_data, expire_at):
-        """Create and upload extracted file."""
+    def _create_extracted_file(self, data, filename, mime_type, expire_at):
+        """Create and upload extracted file to Strelka coordinator."""
         extract_file = strelka.File(name=filename, source=self.name)
         
         if mime_type:
             extract_file.add_flavors({'external': [mime_type]})
-            attachment_data['mime_type'] = mime_type
         
         for c in strelka.chunk_string(data):
             self.upload_to_coordinator(extract_file.pointer, c, expire_at)
@@ -481,11 +501,7 @@ class ScanIcs(strelka.Scanner):
         self.files.append(extract_file)
         self.event['total']['extracted_files'] += 1
         
-        attachment_data.update({
-            'extracted': True,
-            'size': str(len(data)),
-            'filename': filename
-        })
+        return extract_file
 
     def _is_uri(self, value):
         """Check if a string value appears to be a URI."""
