@@ -346,8 +346,7 @@ class ScanIcs(strelka.Scanner):
             dict: Attachment metadata with type, size, filename, extraction status
         """
         attachment_data = {
-            'type': 'other',
-            'params': self._extract_params(attachment)
+            'type': 'other'
         }
         
         
@@ -355,7 +354,7 @@ class ScanIcs(strelka.Scanner):
         if isinstance(attachment, vBinary):
             # Traditional icalendar binary attachment
             attachment_data['type'] = 'binary'
-            self._extract_binary_attachment(attachment.obj, attachment_data, expire_at)
+            self._extract_binary_attachment(attachment, attachment_data, expire_at)
             
         elif isinstance(attachment, vUri) or self._is_uri(str(attachment)):
             uri = str(attachment)
@@ -364,12 +363,12 @@ class ScanIcs(strelka.Scanner):
             if uri.startswith('data:') and ';base64,' in uri:
                 attachment_data['type'] = 'binary'
                 # Don't store massive base64 data - just extract the file
-                self._extract_data_uri(uri, attachment_data, expire_at)
+                self._extract_data_uri(attachment, attachment_data, expire_at)
             # Base64 binary with ENCODING parameter (common in Outlook/Exchange)
-            elif self._get_param_value(attachment_data['params'], 'ENCODING') == 'BASE64':
+            elif self._get_attachment_param(attachment, 'ENCODING') == 'BASE64':
                 attachment_data['type'] = 'base64_binary'
                 # Skip storing massive base64 string - just extract the file
-                self._extract_base64_binary_attachment(uri, attachment_data, expire_at)
+                self._extract_base64_binary_attachment(attachment, attachment_data, expire_at)
             else:
                 # Regular URI reference to external file
                 attachment_data['type'] = 'uri'
@@ -377,22 +376,19 @@ class ScanIcs(strelka.Scanner):
             
         return attachment_data
     
-    def _extract_params(self, attachment):
-        """Extract parameters from attachment object."""
-        params = []
-        if hasattr(attachment, 'params'):
-            for param_name, param_value in attachment.params.items():
-                params.append({
-                    'name': param_name,
-                    'value': param_value
-                })
-        return params
+    def _get_attachment_param(self, attachment, param_name):
+        """Get parameter value from attachment object."""
+        if hasattr(attachment, 'params') and param_name in attachment.params:
+            return attachment.params[param_name]
+        return None
     
-    def _extract_binary_attachment(self, binary_data, attachment_data, expire_at):
+    
+    def _extract_binary_attachment(self, attachment, attachment_data, expire_at):
         """Extract binary attachment data."""
         try:
-            mime_type = self._get_param_value(attachment_data['params'], 'FMTTYPE')
-            filename = self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME'])
+            binary_data = attachment.obj
+            mime_type = self._get_attachment_param(attachment, 'FMTTYPE')
+            filename = self._get_attachment_param(attachment, 'X-FILENAME') or self._get_attachment_param(attachment, 'FILENAME')
             
             if not filename:
                 filename = f'ics_attachment_{self.event["total"]["attachments"]}'
@@ -410,11 +406,12 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('attachment_decode_error')
             attachment_data['decode_error'] = str(e)
     
-    def _extract_data_uri(self, data_uri, attachment_data, expire_at):
+    def _extract_data_uri(self, attachment, attachment_data, expire_at):
         """Extract file from data URI with base64 content."""
         try:
             import base64
             
+            data_uri = str(attachment)
             if ';base64,' not in data_uri:
                 return
                 
@@ -422,7 +419,8 @@ class ScanIcs(strelka.Scanner):
             mime_type = header.replace('data:', '')
             decoded_data = base64.b64decode(encoded_data)
             
-            filename = (self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME']) or 
+            filename = (self._get_attachment_param(attachment, 'X-FILENAME') or 
+                       self._get_attachment_param(attachment, 'FILENAME') or
                        self._generate_filename(mime_type))
             
             extract_file = self._create_extracted_file(decoded_data, filename, mime_type, expire_at)
@@ -438,17 +436,18 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('data_uri_decode_error')
             attachment_data['decode_error'] = str(e)
     
-    def _extract_base64_binary_attachment(self, base64_data, attachment_data, expire_at):
+    def _extract_base64_binary_attachment(self, attachment, attachment_data, expire_at):
         """Extract base64-encoded binary attachment (ENCODING=BASE64)."""
         try:
             import base64
             
             # Decode base64 data
+            base64_data = str(attachment)
             decoded_data = base64.b64decode(base64_data)
             
             # Get filename and mime type from parameters
-            filename = self._get_param_value(attachment_data['params'], ['X-FILENAME', 'FILENAME'])
-            mime_type = self._get_param_value(attachment_data['params'], 'FMTTYPE')
+            filename = self._get_attachment_param(attachment, 'X-FILENAME') or self._get_attachment_param(attachment, 'FILENAME')
+            mime_type = self._get_attachment_param(attachment, 'FMTTYPE')
             
             if not filename:
                 filename = f'ics_attachment_{self.event["total"]["attachments"]}'
@@ -466,15 +465,6 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('base64_binary_decode_error')
             attachment_data['decode_error'] = str(e)
     
-    def _get_param_value(self, params, param_names):
-        """Get parameter value by name(s)."""
-        if isinstance(param_names, str):
-            param_names = [param_names]
-        
-        for param in params:
-            if param.get('name') in param_names:
-                return param.get('value')
-        return None
     
     def _generate_filename(self, mime_type):
         """Generate filename from MIME type."""
