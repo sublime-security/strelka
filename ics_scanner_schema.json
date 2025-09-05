@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Strelka ICS Scanner Output Schema",
+  "type": "object",
+  "properties": {
+    "elapsed": {
+      "type": "number",
+      "description": "Scanner execution time in seconds"
+    },
+    "flags": {
+      "type": "array",
+      "description": "Warning/error flags from parsing",
+      "items": {"type": "string"}
+    },
+    "total": {
+      "type": "object",
+      "description": "Summary counts for all calendar components and properties",
+      "properties": {
+        "components": {"type": "integer", "description": "Total calendar components (VEVENT, VTODO, etc.)"},
+        "events": {"type": "integer", "description": "Total VEVENT components"},
+        "todos": {"type": "integer", "description": "Total VTODO components"},
+        "journals": {"type": "integer", "description": "Total VJOURNAL components"},
+        "timezones": {"type": "integer", "description": "Total VTIMEZONE components"},
+        "alarms": {"type": "integer", "description": "Total VALARM components"},
+        "attachments": {"type": "integer", "description": "Total ATTACH properties"},
+        "extracted_files": {"type": "integer", "description": "Successfully extracted attachment files"},
+        "attendees": {"type": "integer", "description": "Total ATTENDEE properties across all components"},
+        "organizers": {"type": "integer", "description": "Total ORGANIZER properties across all components"},
+        "urls": {"type": "integer", "description": "Total URL properties (potential phishing/C2 links)"}
+      },
+      "required": ["components", "events", "todos", "journals", "timezones", "alarms", "attachments", "extracted_files", "attendees", "organizers", "urls"]
+    },
+    "calendars": {
+      "type": "array",
+      "description": "Array of parsed calendar objects",
+      "items": {
+        "type": "object",
+        "properties": {
+          "version": {"type": "string", "description": "iCalendar version (usually 2.0)"},
+          "prodid": {"type": "string", "description": "Product identifier of calendar creator"},
+          "method": {"type": "string", "description": "Calendar method (REQUEST, PUBLISH, etc.)"},
+          "calscale": {"type": "string", "description": "Calendar scale (usually GREGORIAN)"},
+          "components": {
+            "type": "array",
+            "description": "Array of calendar components",
+            "items": {
+              "type": "object",
+              "properties": {
+                "type": {"type": "string", "enum": ["VEVENT", "VTODO", "VJOURNAL", "VTIMEZONE", "VALARM"], "description": "Component type"},
+                "uid": {"type": "string", "description": "Unique identifier"},
+                "summary": {"type": "string", "description": "Brief description or title"},
+                "description": {"type": "string", "description": "Detailed description"},
+                "location": {"type": "string", "description": "Event location"},
+                "dtstart": {"type": "string", "description": "Start date/time in ISO format"},
+                "dtend": {"type": "string", "description": "End date/time in ISO format"},
+                "dtstamp": {"type": "string", "description": "Creation timestamp in ISO format"},
+                "created": {"type": "string", "description": "Creation date/time in ISO format"},
+                "last_modified": {"type": "string", "description": "Last modification date/time in ISO format"},
+                "duration": {"type": "string", "description": "Duration in human-readable format (e.g., '1h', '30m')"},
+                "priority": {"type": "string", "description": "Priority level (0-9)"},
+                "status": {"type": "string", "description": "Event status (CONFIRMED, TENTATIVE, etc.)"},
+                "class": {"type": "string", "description": "Classification (PUBLIC, PRIVATE, CONFIDENTIAL)"},
+                "transp": {"type": "string", "description": "Transparency (OPAQUE, TRANSPARENT)"},
+                "sequence": {"type": "string", "description": "Revision sequence number"},
+                "attendees": {
+                  "type": "array",
+                  "description": "Event attendees",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "email": {"type": "string", "description": "Attendee email address"},
+                      "name": {"type": "string", "description": "Common name"},
+                      "display_name": {"type": "string", "description": "Standard format: Display Name <email@address>"},
+                      "role": {"type": "string", "description": "Attendee role (REQ-PARTICIPANT, OPT-PARTICIPANT, etc.)"},
+                      "partstat": {"type": "string", "description": "Participation status (ACCEPTED, DECLINED, etc.)"},
+                      "rsvp": {"type": ["string", "boolean"], "description": "RSVP requested"}
+                    }
+                  }
+                },
+                "organizers": {
+                  "type": "array",
+                  "description": "Event organizers",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "email": {"type": "string", "description": "Organizer email address"},
+                      "name": {"type": "string", "description": "Common name"},
+                      "display_name": {"type": "string", "description": "Standard format: Display Name <email@address>"}
+                    }
+                  }
+                },
+                "attachments": {
+                  "type": "array",
+                  "description": "File attachments",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "type": {"type": "string", "enum": ["binary", "base64_binary", "uri", "other"], "description": "Attachment type"},
+                      "filename": {"type": "string", "description": "Original or generated filename"},
+                      "mime_type": {"type": "string", "description": "MIME type"},
+                      "size": {"type": "string", "description": "File size in bytes (as string)"},
+                      "uri": {"type": "string", "description": "URI for uri attachment types (external references)"},
+                      "extracted": {"type": "boolean", "description": "Whether file was successfully extracted"},
+                      "decode_error": {"type": "string", "description": "Error message if extraction failed"},
+                      "params": {
+                        "type": "array",
+                        "description": "Parameter list from attachment object",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {"type": "string", "description": "Parameter name"},
+                            "value": {"type": "string", "description": "Parameter value"}
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "urls": {
+                  "type": "array",
+                  "description": "URLs referenced in the component",
+                  "items": {"type": "string", "description": "The URL"}
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "parse_error": {
+      "type": "string",
+      "description": "Error message if parsing failed"
+    }
+  },
+  "required": ["total"]
+}

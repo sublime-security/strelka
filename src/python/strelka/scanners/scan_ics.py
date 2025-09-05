@@ -292,6 +292,14 @@ class ScanIcs(strelka.Scanner):
             attendee_data['role'] = attendee.params.get('ROLE') if hasattr(attendee, 'params') else None
             attendee_data['partstat'] = attendee.params.get('PARTSTAT') if hasattr(attendee, 'params') else None
             attendee_data['rsvp'] = attendee.params.get('RSVP') if hasattr(attendee, 'params') else None
+            
+            # Create standard "Display Name <email@address>" format
+            if attendee_data['name'] and attendee_data['email']:
+                attendee_data['display_name'] = f"{attendee_data['name']} <{attendee_data['email']}>"
+            elif attendee_data['email']:
+                attendee_data['display_name'] = attendee_data['email']
+            elif attendee_data['name']:
+                attendee_data['display_name'] = attendee_data['name']
         
         return attendee_data
 
@@ -306,6 +314,14 @@ class ScanIcs(strelka.Scanner):
         if isinstance(organizer, vCalAddress):
             organizer_data['email'] = organizer.email
             organizer_data['name'] = organizer.name
+            
+            # Create standard "Display Name <email@address>" format
+            if organizer_data['name'] and organizer_data['email']:
+                organizer_data['display_name'] = f"{organizer_data['name']} <{organizer_data['email']}>"
+            elif organizer_data['email']:
+                organizer_data['display_name'] = organizer_data['email']
+            elif organizer_data['name']:
+                organizer_data['display_name'] = organizer_data['name']
         
         return organizer_data
 
