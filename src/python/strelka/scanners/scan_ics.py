@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, Optional, Union
 from datetime import timedelta
 
-from icalendar import Calendar, vBinary, vCalAddress, vUri
+from icalendar import Calendar, Component, vBinary, vCalAddress, vUri
 
 from strelka import strelka
 
@@ -72,7 +72,7 @@ class ScanIcs(strelka.Scanner):
             
             self.event['calendars'] = []
             
-            for cal_idx, cal in enumerate(calendar):
+            for cal in calendar:
                 cal_data = self._extract_calendar_metadata(cal)
                 
                 # Process all components in the calendar
@@ -95,7 +95,7 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('ics_parse_error')
             self.event['parse_error'] = str(e)
 
-    def _extract_calendar_metadata(self, calendar: Calendar) -> Dict[str, Any]:
+    def _extract_calendar_metadata(self, calendar: Component) -> Dict[str, Any]:
         """Extract top-level calendar metadata."""
         metadata = {}
         
@@ -108,7 +108,7 @@ class ScanIcs(strelka.Scanner):
         
         return metadata
 
-    def _process_component(self, component: Any, expire_at: int) -> Dict[str, Any]:
+    def _process_component(self, component: Component, expire_at: int) -> Optional[Dict[str, Any]]:
         """Process individual calendar components (VEVENT, VTODO, etc.)."""
         comp_name = component.name
         if not comp_name or comp_name == 'VCALENDAR':
@@ -183,7 +183,7 @@ class ScanIcs(strelka.Scanner):
         
         return comp_data
 
-    def _extract_component_convenience_fields(self, comp_data: Dict[str, Any], component: Any) -> None:
+    def _extract_component_convenience_fields(self, comp_data: Dict[str, Any], component: Component) -> None:
         """Extract key fields to parent level for easier access."""
         comp_type = comp_data['type']
         
@@ -280,9 +280,10 @@ class ScanIcs(strelka.Scanner):
 
     def _extract_attendee_data(self, attendee: vCalAddress) -> Dict[str, Any]:
         """Extract attendee information with parsed details."""
-        attendee_data = {
+        attendee_data: Dict[str, Any] = {
             'email': None,
             'name': None,
+            'display_name': None,
             'role': None,
             'partstat': None,
             'rsvp': None
@@ -308,9 +309,10 @@ class ScanIcs(strelka.Scanner):
 
     def _extract_organizer_data(self, organizer: vCalAddress) -> Dict[str, Any]:
         """Extract organizer information with parsed details."""
-        organizer_data = {
+        organizer_data: Dict[str, Any] = {
             'email': None,
-            'name': None
+            'name': None,
+            'display_name': None
         }
         
         # Handle vCalAddress objects using built-in properties
