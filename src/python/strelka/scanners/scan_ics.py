@@ -27,6 +27,12 @@ class ScanIcs(strelka.Scanner):
     Dependencies:
         - icalendar library (tested with 6.3.1)
     """
+    
+    # Default limits for calendar bomb protection
+    DEFAULT_MAX_COMPONENTS = 1000
+    DEFAULT_MAX_ATTENDEES_PER_COMPONENT = 100
+    DEFAULT_MAX_ORGANIZERS_PER_COMPONENT = 10
+    DEFAULT_MAX_ATTACHMENTS_PER_COMPONENT = 50
 
     def scan(self, data: bytes, file: strelka.File, options: Dict[str, Any], expire_at: int) -> None:
         """Main scanning function that processes ICS file data.
@@ -40,10 +46,10 @@ class ScanIcs(strelka.Scanner):
         # Calendar bomb protection: Limits prevent resource exhaustion while 
         # preserving attack detection through total counts and flags
         self.limits = {
-            'max_components': options.get('max_components', 1000),
-            'max_attendees_per_component': options.get('max_attendees_per_component', 100),
-            'max_organizers_per_component': options.get('max_organizers_per_component', 10),
-            'max_attachments_per_component': options.get('max_attachments_per_component', 50)
+            'max_components': options.get('max_components', self.DEFAULT_MAX_COMPONENTS),
+            'max_attendees_per_component': options.get('max_attendees_per_component', self.DEFAULT_MAX_ATTENDEES_PER_COMPONENT),
+            'max_organizers_per_component': options.get('max_organizers_per_component', self.DEFAULT_MAX_ORGANIZERS_PER_COMPONENT),
+            'max_attachments_per_component': options.get('max_attachments_per_component', self.DEFAULT_MAX_ATTACHMENTS_PER_COMPONENT)
         }
         
         # Track totals for both analysis and bomb detection
