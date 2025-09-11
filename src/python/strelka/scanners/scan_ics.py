@@ -1,3 +1,6 @@
+from typing import Any, Dict, List, Optional, Union
+from datetime import timedelta
+
 from icalendar import Calendar, vBinary, vCalAddress, vUri
 
 from strelka import strelka
@@ -25,7 +28,7 @@ class ScanIcs(strelka.Scanner):
         - icalendar library (tested with 6.3.1)
     """
 
-    def scan(self, data, file, options, expire_at):
+    def scan(self, data: bytes, file: strelka.File, options: Dict[str, Any], expire_at: int) -> None:
         """Main scanning function that processes ICS file data.
         
         Args:
@@ -92,7 +95,7 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('ics_parse_error')
             self.event['parse_error'] = str(e)
 
-    def _extract_calendar_metadata(self, calendar):
+    def _extract_calendar_metadata(self, calendar: Calendar) -> Dict[str, Any]:
         """Extract top-level calendar metadata."""
         metadata = {}
         
@@ -105,7 +108,7 @@ class ScanIcs(strelka.Scanner):
         
         return metadata
 
-    def _process_component(self, component, expire_at):
+    def _process_component(self, component: Any, expire_at: int) -> Dict[str, Any]:
         """Process individual calendar components (VEVENT, VTODO, etc.)."""
         comp_name = component.name
         if not comp_name or comp_name == 'VCALENDAR':
@@ -180,7 +183,7 @@ class ScanIcs(strelka.Scanner):
         
         return comp_data
 
-    def _extract_component_convenience_fields(self, comp_data, component):
+    def _extract_component_convenience_fields(self, comp_data: Dict[str, Any], component: Any) -> None:
         """Extract key fields to parent level for easier access."""
         comp_type = comp_data['type']
         
@@ -211,7 +214,7 @@ class ScanIcs(strelka.Scanner):
                 else:
                     comp_data[convenience_field] = str(component[field_name])
 
-    def _extract_datetime_value(self, dt_value):
+    def _extract_datetime_value(self, dt_value: Any) -> str:
         """Extract clean datetime/date/duration values from icalendar objects."""
         # Check if it has the .dt property (vDDDTypes, vDuration, etc.)
         if hasattr(dt_value, 'dt'):
@@ -231,7 +234,7 @@ class ScanIcs(strelka.Scanner):
         else:
             return str(dt_value)
 
-    def _format_duration(self, td):
+    def _format_duration(self, td: timedelta) -> str:
         """Format timedelta objects into human-readable strings.
         
         Converts confusing Python timedelta representations like "-1 day, 23:45:00"
@@ -275,7 +278,7 @@ class ScanIcs(strelka.Scanner):
         
         return sign + "".join(parts) if parts else f"{sign}{total_seconds}s"
 
-    def _extract_attendee_data(self, attendee):
+    def _extract_attendee_data(self, attendee: vCalAddress) -> Dict[str, Any]:
         """Extract attendee information with parsed details."""
         attendee_data = {
             'email': None,
@@ -303,7 +306,7 @@ class ScanIcs(strelka.Scanner):
         
         return attendee_data
 
-    def _extract_organizer_data(self, organizer):
+    def _extract_organizer_data(self, organizer: vCalAddress) -> Dict[str, Any]:
         """Extract organizer information with parsed details."""
         organizer_data = {
             'email': None,
@@ -325,7 +328,7 @@ class ScanIcs(strelka.Scanner):
         
         return organizer_data
 
-    def _process_attachment(self, attachment, expire_at):
+    def _process_attachment(self, attachment: Union[vBinary, vUri, str], expire_at: int) -> Dict[str, Any]:
         """Process ATTACH properties - the primary attack vector in malicious ICS files.
         
         Handles multiple attachment formats found in the wild:
@@ -376,14 +379,14 @@ class ScanIcs(strelka.Scanner):
             
         return attachment_data
     
-    def _get_attachment_param(self, attachment, param_name):
+    def _get_attachment_param(self, attachment: Union[vBinary, vUri, str], param_name: str) -> Optional[str]:
         """Get parameter value from attachment object."""
         if hasattr(attachment, 'params') and param_name in attachment.params:
             return attachment.params[param_name]
         return None
     
     
-    def _extract_binary_attachment(self, attachment, attachment_data, expire_at):
+    def _extract_binary_attachment(self, attachment: vBinary, attachment_data: Dict[str, Any], expire_at: int) -> None:
         """Extract binary attachment data."""
         try:
             binary_data = attachment.obj
@@ -409,7 +412,7 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('attachment_decode_error')
             attachment_data['decode_error'] = str(e)
     
-    def _extract_data_uri(self, attachment, attachment_data, expire_at):
+    def _extract_data_uri(self, attachment: Union[vUri, str], attachment_data: Dict[str, Any], expire_at: int) -> None:
         """Extract file from data URI with base64 content."""
         try:
             import base64
@@ -444,7 +447,7 @@ class ScanIcs(strelka.Scanner):
             self.flags.append('data_uri_decode_error')
             attachment_data['decode_error'] = str(e)
     
-    def _extract_base64_binary_attachment(self, attachment, attachment_data, expire_at):
+    def _extract_base64_binary_attachment(self, attachment: Union[vUri, str], attachment_data: Dict[str, Any], expire_at: int) -> None:
         """Extract base64-encoded binary attachment (ENCODING=BASE64)."""
         try:
             import base64
@@ -477,7 +480,7 @@ class ScanIcs(strelka.Scanner):
             attachment_data['decode_error'] = str(e)
     
     
-    def _generate_filename(self, mime_type):
+    def _generate_filename(self, mime_type: str) -> str:
         """Generate filename from MIME type."""
         ext_map = {
             'application/pdf': '.pdf',
@@ -489,7 +492,7 @@ class ScanIcs(strelka.Scanner):
         ext = ext_map.get(mime_type, '.bin')
         return f'ics_data_uri_{self.event["total"]["attachments"]}{ext}'
     
-    def _create_extracted_file(self, data, filename, mime_type, expire_at):
+    def _create_extracted_file(self, data: bytes, filename: Optional[str], mime_type: Optional[str], expire_at: int) -> strelka.File:
         """Create and upload extracted file to Strelka coordinator."""
         extract_file = strelka.File(name=filename or '', source=self.name)
         
@@ -504,7 +507,7 @@ class ScanIcs(strelka.Scanner):
         
         return extract_file
 
-    def _is_uri(self, value):
+    def _is_uri(self, value: str) -> bool:
         """Check if a string value appears to be a URI."""
         uri_schemes = ['http', 'https', 'ftp', 'file', 'mailto', 'cid', 'data']
         value_lower = value.lower()
