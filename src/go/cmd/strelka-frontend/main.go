@@ -42,6 +42,8 @@ type server struct {
 	coordinator coord
 	gatekeeper  *gate
 	responses   chan<- *strelka.ScanResponse
+
+	releaseVersion string
 }
 
 type request struct {
@@ -158,7 +160,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 				resp := &strelka.ScanResponse{
 					Id:             req.Id,
 					Event:          string(event),
-					ReleaseVersion: os.Getenv("RELEASE_VERSION"),
+					ReleaseVersion: s.releaseVersion,
 					BackendVersion: backendVersion,
 				}
 
@@ -239,7 +241,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		resp := &strelka.ScanResponse{
 			Id:             req.Id,
 			Event:          string(event),
-			ReleaseVersion: os.Getenv("RELEASE_VERSION"),
+			ReleaseVersion: s.releaseVersion,
 			BackendVersion: backendVersion,
 		}
 
@@ -831,6 +833,8 @@ func main() {
 		},
 		gatekeeper: gatekeeper,
 		responses:  responses,
+
+		releaseVersion: os.Getenv("RELEASE_VERSION"),
 	}
 
 	go func() {
