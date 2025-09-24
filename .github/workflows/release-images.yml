@@ -108,6 +108,8 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
+          build-args: |
+            RELEASE_VERSION=${{ steps.get_ver.outputs.SEM_VER }}
           tags: |
             sublimesec/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
             ${{ steps.login-ecr.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
@@ -120,6 +122,8 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
+          build-args: |
+            RELEASE_VERSION=${{ steps.get_ver.outputs.SEM_VER }}
           tags: |
             sublimesec/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
             ${{ steps.login-ecr.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
@@ -132,6 +136,8 @@ jobs:
           context: .
           platforms: linux/${{ matrix.arch }}
           load: true
+          build-args: |
+            RELEASE_VERSION=${{ steps.get_ver.outputs.SEM_VER }}
           tags: |
             sublimesec/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
             ${{ steps.login-ecr.outputs.registry }}/strelka-manager:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}

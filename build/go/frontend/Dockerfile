@@ -21,6 +21,9 @@ LABEL maintainer="Target Brands, Inc. TTS-CFC-OpenSource@target.com"
 # Copy binary
 COPY --from=build /tmp/strelka-frontend /usr/local/bin/strelka-frontend
 
+ARG RELEASE_VERSION
+ENV RELEASE_VERSION=$RELEASE_VERSION
+
 # Create logging directory
 RUN mkdir /var/log/strelka/ && \
     chgrp -R 0 /var/log/strelka/ && \

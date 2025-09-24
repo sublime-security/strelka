@@ -182,5 +182,8 @@ COPY ./build/configs/taste.yara /strelka/config
 COPY ./build/configs/passwords.dat /strelka/config
 COPY ./build/configs/scanners.yaml /strelka/config
 
+ARG RELEASE_VERSION
+ENV RELEASE_VERSION=$RELEASE_VERSION
+
 
 USER 1001

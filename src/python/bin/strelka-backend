@@ -381,6 +381,7 @@ class Backend(object):
                     event = {
                         **{'file': file_dict},
                         **{'scan': scan},
+                        **{'backend': {'release_version': os.environ.get('RELEASE_VERSION', '')}},
                     }
 
                     p.rpush(f'event:{root_id}', strelka.format_event(event))

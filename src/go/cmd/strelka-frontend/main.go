@@ -148,9 +148,18 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 					return fmt.Errorf("marshaling: %w", err)
 				}
 
+				backendVersion := ""
+				if backend, ok := em["backend"].(map[string]interface{}); ok {
+					if releaseVersion, ok := backend["release_version"].(string); ok {
+						backendVersion = releaseVersion
+					}
+				}
+
 				resp := &strelka.ScanResponse{
-					Id:    req.Id,
-					Event: string(event),
+					Id:             req.Id,
+					Event:          string(event),
+					ReleaseVersion: os.Getenv("RELEASE_VERSION"),
+					BackendVersion: backendVersion,
 				}
 
 				s.responses <- resp
@@ -220,9 +229,18 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			return fmt.Errorf("marshaling: %w", err)
 		}
 
+		backendVersion := ""
+		if backend, ok := em["backend"].(map[string]interface{}); ok {
+			if releaseVersion, ok := backend["release_version"].(string); ok {
+				backendVersion = releaseVersion
+			}
+		}
+
 		resp := &strelka.ScanResponse{
-			Id:    req.Id,
-			Event: string(event),
+			Id:             req.Id,
+			Event:          string(event),
+			ReleaseVersion: os.Getenv("RELEASE_VERSION"),
+			BackendVersion: backendVersion,
 		}
 
 		s.responses <- resp
