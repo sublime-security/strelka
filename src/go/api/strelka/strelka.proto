@@ -87,4 +87,6 @@ message ScanFileRequest {
 message ScanResponse {
   string id = 1;
   string event = 2;
+  string release_version = 3;
+  string backend_version = 4;
 }
