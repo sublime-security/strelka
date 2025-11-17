@@ -454,6 +454,8 @@ scanners:
       priority: 5
       options:
         limit: 1000
+        scanner_timeout: 20 #In seconds
+        password_file: '/strelka/config/passwords.dat'
 #  'ScanRpm': revisit
 #    - positive:
 #        flavors:
