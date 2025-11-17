@@ -70,7 +70,7 @@ class ScanRar(strelka.Scanner):
                                     if not password and i == 0:
                                         for pw in self.passwords:
                                             try:
-                                                data = rar_obj.open(name, mode='r', psw=pw.decode('utf-8'))
+                                                data = rar_obj.open(name, mode='r', pwd=pw.decode('utf-8'))
                                                 if data.readable():
                                                     extract_data = data.readall()
                                                     password = pw.decode('utf-8')
@@ -82,7 +82,7 @@ class ScanRar(strelka.Scanner):
                                         break
                                     else:
                                         try:
-                                            data = rar_obj.open(name, mode='r', psw=password)
+                                            data = rar_obj.open(name, mode='r', pwd=password)
                                             if data.readable():
                                                 extract_data = data.readall()
                                         except (RuntimeError, rarfile.BadRarFile, rarfile.RarCRCError, rarfile.RarWrongPassword):
