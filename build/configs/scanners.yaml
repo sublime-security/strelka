@@ -382,6 +382,12 @@ scanners:
         limit: 2000
         pdf_to_png: True
         no_object_extraction: True
+  'ScanPdfObjHash':
+    - positive:
+        flavors:
+          - 'application/pdf'
+          - 'pdf_file'
+      priority: 5
   'ScanOnenote':
     - positive:
         flavors:
