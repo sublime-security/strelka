@@ -388,6 +388,8 @@ scanners:
           - 'application/pdf'
           - 'pdf_file'
       priority: 5
+      options:
+        scanner_timeout: 10 # in seconds
   'ScanOnenote':
     - positive:
         flavors:
