@@ -20,27 +20,26 @@ class ScanPptx(strelka.Scanner):
 
             try:
                 pptx_doc = Presentation(pptx_io)
-                self.event['author'] = pptx_doc.core_properties.author
-                self.event['category'] = pptx_doc.core_properties.category
-                self.event['comments'] = pptx_doc.core_properties.comments
-                self.event['content_status'] = pptx_doc.core_properties.content_status
-                if pptx_doc.core_properties.created is not None:
-                    self.event['created'] = int(pptx_doc.core_properties.created.strftime('%s'))
-                self.event['identifier'] = pptx_doc.core_properties.identifier
-                self.event['keywords'] = pptx_doc.core_properties.keywords
-                self.event['language'] = pptx_doc.core_properties.language
-                self.event['last_modified_by'] = pptx_doc.core_properties.last_modified_by
-                if pptx_doc.core_properties.last_printed is not None:
-                    self.event['last_printed'] = int(pptx_doc.core_properties.last_printed.strftime('%s'))
-                if pptx_doc.core_properties.modified is not None:
-                    self.event['modified'] = int(pptx_doc.core_properties.modified.strftime('%s'))
-                self.event['revision'] = pptx_doc.core_properties.revision
-                self.event['subject'] = pptx_doc.core_properties.subject
-                self.event['title'] = pptx_doc.core_properties.title
-                self.event['version'] = pptx_doc.core_properties.version
-                self.event['slide_count'] = len(pptx_doc.slides)
-                self.event['word_count'] = 0
-                self.event['image_count'] = 0
+                self.event.update({
+                    'author': pptx_doc.core_properties.author,
+                    'category': pptx_doc.core_properties.category,
+                    'comments': pptx_doc.core_properties.comments,
+                    'content_status': pptx_doc.core_properties.content_status,
+                    'created': int(pptx_doc.core_properties.created.strftime('%s')) if pptx_doc.core_properties.created is not None else None,
+                    'identifier': pptx_doc.core_properties.identifier,
+                    'keywords': pptx_doc.core_properties.keywords,
+                    'language': pptx_doc.core_properties.language,
+                    'last_modified_by': pptx_doc.core_properties.last_modified_by,
+                    'last_printed': int(pptx_doc.core_properties.last_printed.strftime('%s')) if pptx_doc.core_properties.last_printed is not None else None,
+                    'modified': int(pptx_doc.core_properties.modified.strftime('%s')) if pptx_doc.core_properties.modified is not None else None,
+                    'revision': pptx_doc.core_properties.revision,
+                    'subject': pptx_doc.core_properties.subject,
+                    'title': pptx_doc.core_properties.title,
+                    'version': pptx_doc.core_properties.version,
+                    'slide_count': len(pptx_doc.slides),
+                    'word_count': 0,
+                    'image_count': 0,
+                })
 
                 # Single pass: collect text, count words/images, extract hyperlinks
                 extracted_text = [] if extract_text else None
