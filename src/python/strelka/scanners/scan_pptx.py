@@ -43,6 +43,7 @@ class ScanPptx(strelka.Scanner):
 
                 # Single pass: collect text, count words/images, extract hyperlinks
                 extracted_text = [] if extract_text else None
+                extracted_notes = []
 
                 for slide in pptx_doc.slides:
                     for shape in slide.shapes:
@@ -62,6 +63,11 @@ class ScanPptx(strelka.Scanner):
                                     text = run.text.strip()
                                     if text:
                                         self.event['word_count'] += len(text.split())
+                        # Process notes
+                        if slide.has_notes_slide:
+                            notes_text = slide.notes_slide.notes_text_frame.text.strip()
+                            if notes_text:
+                                extracted_notes.append(notes_text)
 
                         # Extract hyperlinks
                         if hasattr(shape, 'click_action') and shape.click_action:
@@ -79,6 +85,22 @@ class ScanPptx(strelka.Scanner):
 
                     text_content = '\n'.join(extracted_text)
                     for c in strelka.chunk_string(text_content):
+                        self.upload_to_coordinator(
+                            extract_file.pointer,
+                            c,
+                            expire_at,
+                        )
+
+                    self.files.append(extract_file)
+
+                # Upload extracted notes as single batch
+                if extracted_notes:
+                    extract_file = strelka.File(
+                        name='notes',
+                        source=self.name,
+                    )
+                    notes_content = '\n'.join(extracted_notes)
+                    for c in strelka.chunk_string(notes_content):
                         self.upload_to_coordinator(
                             extract_file.pointer,
                             c,
