@@ -102,3 +102,22 @@ class TestScanPptx:
                     image_count += 1
 
         assert image_count == 1
+
+    def test_notes_extraction(self, pptx_data):
+        """Test that speaker notes are extracted from slides."""
+        from pptx import Presentation
+
+        pptx_doc = Presentation(io.BytesIO(pptx_data))
+
+        notes = []
+        for slide in pptx_doc.slides:
+            if slide.has_notes_slide:
+                notes_text = slide.notes_slide.notes_text_frame.text.strip()
+                if notes_text:
+                    notes.append(notes_text)
+
+        assert len(notes) == 4
+        assert "Speaker notes for slide 1" in notes[0]
+        assert "Speaker notes for slide 2" in notes[1]
+        assert "Speaker notes for slide 3" in notes[2]
+        assert "Speaker notes for slide 4" in notes[3]

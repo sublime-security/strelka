@@ -31,6 +31,12 @@ def test_scan_pptx(mocker):
         "slide_count": 4,
         "word_count": mock.ANY,
         "image_count": 1,
+        "notes": [
+            "Speaker notes for slide 1: Introduction to contract update.",
+            "Speaker notes for slide 2: Summary of key changes.",
+            "Speaker notes for slide 3: Required steps for completion.",
+            "Speaker notes for slide 4: Contact information and support.",
+        ],
         "hyperlinks": [
             "https://test.tracking-domain.example.com/click/https%3A%2F%2Fphishing.example.com%2Flogin/tracking-id-12345#6a6f686e2e646f65406578616d706c652e636f6d"
         ],
@@ -82,3 +88,22 @@ def test_scan_pptx_extracts_hyperlinks(mocker):
     assert len(hyperlinks) == 1
     assert "tracking-domain.example.com" in hyperlinks[0]
     assert "phishing.example.com" in hyperlinks[0]
+
+
+def test_scan_pptx_extracts_notes(mocker):
+    """
+    Pass: Speaker notes are extracted from slides.
+    Failure: Notes not found or content doesn't match.
+    """
+
+    scanner_event = run_test_scan(
+        mocker=mocker,
+        scan_class=ScanUnderTest,
+        fixture_path=Path(__file__).parent / "fixtures/test.pptx",
+    )
+
+    # Verify notes are captured
+    notes = scanner_event.get("notes", [])
+    assert len(notes) == 4
+    assert "Speaker notes for slide 1" in notes[0]
+    assert "Speaker notes for slide 4" in notes[3]
