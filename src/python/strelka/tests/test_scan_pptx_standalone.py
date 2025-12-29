@@ -53,22 +53,22 @@ class TestScanPptx:
         assert "john.doe@example.com" in full_text
         assert "ACME CORP" in full_text
 
-    def test_hyperlink_extraction(self, pptx_data):
-        """Test that hyperlinks are extracted from shapes."""
+    def test_url_extraction(self, pptx_data):
+        """Test that urls are extracted from shapes."""
         from pptx import Presentation
 
         pptx_doc = Presentation(io.BytesIO(pptx_data))
 
-        hyperlinks = []
+        urls = []
         for slide in pptx_doc.slides:
             for shape in slide.shapes:
                 if hasattr(shape, "click_action") and shape.click_action:
                     if shape.click_action.hyperlink and shape.click_action.hyperlink.address:
-                        hyperlinks.append(shape.click_action.hyperlink.address)
+                        urls.append(shape.click_action.hyperlink.address)
 
-        assert len(hyperlinks) == 1
-        assert "tracking-domain.example.com" in hyperlinks[0]
-        assert "phishing.example.com" in hyperlinks[0]
+        assert len(urls) == 1
+        assert "tracking-domain.example.com" in urls[0]
+        assert "phishing.example.com" in urls[0]
 
     def test_word_count(self, pptx_data):
         """Test that word count is calculated correctly."""

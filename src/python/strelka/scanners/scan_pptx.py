@@ -41,7 +41,7 @@ class ScanPptx(strelka.Scanner):
                     'image_count': 0,
                 })
 
-                # Single pass: collect text, count words/images, extract hyperlinks
+                # Single pass: collect text, count words/images, extract urls
                 extracted_text = [] if extract_text else None
                 extracted_notes = []
 
@@ -72,7 +72,7 @@ class ScanPptx(strelka.Scanner):
                         # Extract hyperlinks
                         if hasattr(shape, 'click_action') and shape.click_action:
                             if shape.click_action.hyperlink and shape.click_action.hyperlink.address:
-                                self.event.setdefault('hyperlinks', []).append(
+                                self.event.setdefault('urls', []).append(
                                     shape.click_action.hyperlink.address
                                 )
 

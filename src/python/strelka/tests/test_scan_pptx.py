@@ -37,7 +37,7 @@ def test_scan_pptx(mocker):
             "Speaker notes for slide 3: Required steps for completion.",
             "Speaker notes for slide 4: Contact information and support.",
         ],
-        "hyperlinks": [
+        "urls": [
             "https://test.tracking-domain.example.com/click/https%3A%2F%2Fphishing.example.com%2Flogin/tracking-id-12345#6a6f686e2e646f65406578616d706c652e636f6d"
         ],
     }
@@ -71,10 +71,10 @@ def test_scan_pptx_extracts_text(mocker):
     assert scanner_event.get("image_count") == 1
 
 
-def test_scan_pptx_extracts_hyperlinks(mocker):
+def test_scan_pptx_extracts_urls(mocker):
     """
-    Pass: Hyperlinks are extracted from the presentation.
-    Failure: Hyperlinks not found or malformed.
+    Pass: Urls are extracted from the presentation.
+    Failure: Urls not found or malformed.
     """
 
     scanner_event = run_test_scan(
@@ -83,11 +83,11 @@ def test_scan_pptx_extracts_hyperlinks(mocker):
         fixture_path=Path(__file__).parent / "fixtures/test.pptx",
     )
 
-    # Verify hyperlinks are captured (sanitized test URLs)
-    hyperlinks = scanner_event.get("hyperlinks", [])
-    assert len(hyperlinks) == 1
-    assert "tracking-domain.example.com" in hyperlinks[0]
-    assert "phishing.example.com" in hyperlinks[0]
+    # Verify urls are captured (sanitized test URLs)
+    urls = scanner_event.get("urls", [])
+    assert len(urls) == 1
+    assert "tracking-domain.example.com" in urls[0]
+    assert "phishing.example.com" in urls[0]
 
 
 def test_scan_pptx_extracts_notes(mocker):
