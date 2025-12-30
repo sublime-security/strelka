@@ -44,6 +44,7 @@ class ScanPptx(strelka.Scanner):
                 # Single pass: collect text, count words/images, extract urls
                 extracted_text = [] if extract_text else None
                 extracted_notes = []
+                extracted_urls = []
 
                 for slide in pptx_doc.slides:
                     for shape in slide.shapes:
@@ -72,9 +73,12 @@ class ScanPptx(strelka.Scanner):
                         # Extract hyperlinks
                         if hasattr(shape, 'click_action') and shape.click_action:
                             if shape.click_action.hyperlink and shape.click_action.hyperlink.address:
-                                self.event.setdefault('urls', []).append(
+                                extracted_urls.append(
                                     shape.click_action.hyperlink.address
                                 )
+
+                if extracted_urls:
+                    self.event['urls'] = extracted_urls
 
                 # Upload extracted text as single batch
                 if extract_text and extracted_text:
