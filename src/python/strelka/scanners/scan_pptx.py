@@ -1,0 +1,119 @@
+import io
+import zipfile
+
+from pptx import Presentation
+
+from strelka import strelka
+
+
+class ScanPptx(strelka.Scanner):
+    """Collects metadata and extracts text from pptx files.
+    Options:
+        extract_text: Boolean that determines if document text should be
+            extracted as a child file.
+            Defaults to False.
+    """
+
+    def scan(self, data, file, options, expire_at):
+        extract_text = options.get('extract_text', False)
+        with io.BytesIO(data) as pptx_io:
+
+            try:
+                pptx_doc = Presentation(pptx_io)
+                self.event.update({
+                    'author': pptx_doc.core_properties.author,
+                    'category': pptx_doc.core_properties.category,
+                    'comments': pptx_doc.core_properties.comments,
+                    'content_status': pptx_doc.core_properties.content_status,
+                    'created': int(pptx_doc.core_properties.created.strftime('%s')) if pptx_doc.core_properties.created is not None else None,
+                    'identifier': pptx_doc.core_properties.identifier,
+                    'keywords': pptx_doc.core_properties.keywords,
+                    'language': pptx_doc.core_properties.language,
+                    'last_modified_by': pptx_doc.core_properties.last_modified_by,
+                    'last_printed': int(pptx_doc.core_properties.last_printed.strftime('%s')) if pptx_doc.core_properties.last_printed is not None else None,
+                    'modified': int(pptx_doc.core_properties.modified.strftime('%s')) if pptx_doc.core_properties.modified is not None else None,
+                    'revision': pptx_doc.core_properties.revision,
+                    'subject': pptx_doc.core_properties.subject,
+                    'title': pptx_doc.core_properties.title,
+                    'version': pptx_doc.core_properties.version,
+                    'slide_count': len(pptx_doc.slides),
+                    'word_count': 0,
+                    'image_count': 0,
+                })
+
+                # Single pass: collect text, count words/images, extract urls
+                extracted_text = [] if extract_text else None
+                extracted_notes = []
+                extracted_urls = []
+
+                for slide in pptx_doc.slides:
+                    for shape in slide.shapes:
+                        # Count images
+                        if shape.shape_type == 13:  # MSO_SHAPE_TYPE.PICTURE
+                            self.event['image_count'] += 1
+
+                        # Process text frames
+                        if shape.has_text_frame:
+                            for para in shape.text_frame.paragraphs:
+                                # Collect text for extraction
+                                if extract_text and para.text:
+                                    extracted_text.append(para.text)
+
+                                # Count words
+                                for run in para.runs:
+                                    text = run.text.strip()
+                                    if text:
+                                        self.event['word_count'] += len(text.split())
+                        # Process notes
+                        if slide.has_notes_slide:
+                            notes_text = slide.notes_slide.notes_text_frame.text.strip()
+                            if notes_text:
+                                extracted_notes.append(notes_text)
+
+                        # Extract hyperlinks
+                        if hasattr(shape, 'click_action') and shape.click_action:
+                            if shape.click_action.hyperlink and shape.click_action.hyperlink.address:
+                                extracted_urls.append(
+                                    shape.click_action.hyperlink.address
+                                )
+
+                if extracted_urls:
+                    self.event['urls'] = extracted_urls
+
+                # Upload extracted text as single batch
+                if extract_text and extracted_text:
+                    extract_file = strelka.File(
+                        name='text',
+                        source=self.name,
+                    )
+
+                    text_content = '\n'.join(extracted_text)
+                    for c in strelka.chunk_string(text_content):
+                        self.upload_to_coordinator(
+                            extract_file.pointer,
+                            c,
+                            expire_at,
+                        )
+
+                    self.files.append(extract_file)
+
+                # Upload extracted notes as single batch
+                if extracted_notes:
+                    extract_file = strelka.File(
+                        name='notes',
+                        source=self.name,
+                    )
+                    notes_content = '\n'.join(extracted_notes)
+                    for c in strelka.chunk_string(notes_content):
+                        self.upload_to_coordinator(
+                            extract_file.pointer,
+                            c,
+                            expire_at,
+                        )
+
+                    self.files.append(extract_file)
+
+            except ValueError:
+                self.flags.append('value_error')
+            except zipfile.BadZipFile:
+                self.flags.append('bad_zip')
