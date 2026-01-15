@@ -382,6 +382,15 @@ scanners:
         limit: 2000
         pdf_to_png: True
         no_object_extraction: True
+  'ScanPdfObjHash':
+    - positive:
+        flavors:
+          - 'application/pdf'
+          - 'pdf_file'
+      priority: 5
+      options:
+        scanner_timeout: 10 # in seconds
+        object_threshold: 200 # only run if number of objects is fewer than this number. If not present will run on every PDF. 
   'ScanOnenote':
     - positive:
         flavors:
