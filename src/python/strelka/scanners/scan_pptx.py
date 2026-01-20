@@ -799,10 +799,6 @@ class ScanPptx(strelka.Scanner):
                     except Exception:
                         pass
 
-                # Add URLs to event (backward compatibility)
-                if extracted_urls:
-                    self.event["urls"] = extracted_urls
-
                 # Add enhanced relationship data
                 if all_relationships:
                     # Deduplicate by (type, target, location)
@@ -864,6 +860,27 @@ class ScanPptx(strelka.Scanner):
                 self.event["has_high_risk_ole"] = any(
                     obj.get("is_high_risk", False) for obj in all_ole_objects
                 )
+
+                # Comprehensive URL extraction (backward compatibility + new methods)
+                # Start with URLs from old method (python-pptx click_action API)
+                all_extracted_urls = list(extracted_urls)
+
+                # Add URLs from actions array (includes hover actions and ppaction URIs)
+                for action in all_actions:
+                    target = action.get("target")
+                    if target and action.get("is_external") and target not in all_extracted_urls:
+                        all_extracted_urls.append(target)
+
+                # Add URLs from relationships array (hyperlinks embedded in text)
+                for rel in all_relationships:
+                    if rel["type"] == "hyperlink":
+                        target = rel.get("target")
+                        if target and target not in all_extracted_urls:
+                            all_extracted_urls.append(target)
+
+                # Update urls array with comprehensive list
+                if all_extracted_urls:
+                    self.event["urls"] = all_extracted_urls
 
                 # Add notes array
                 if extracted_notes:
