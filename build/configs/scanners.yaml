@@ -66,6 +66,8 @@ scanners:
           - 'message/rfc822'
           - 'email_file'
       priority: 5
+    - negative:
+        source: ScanEmail
   'ScanEncryptedDoc':
     - positive:
         flavors:
