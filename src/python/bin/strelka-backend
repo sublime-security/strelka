@@ -5,7 +5,7 @@ strelka-backend
 Command line utility for running Strelka backend server components.
 """
 import argparse
-import datetime
+from datetime import datetime
 import glob
 import hashlib
 import importlib
