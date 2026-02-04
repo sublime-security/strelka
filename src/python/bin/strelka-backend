@@ -5,6 +5,7 @@ strelka-backend
 Command line utility for running Strelka backend server components.
 """
 import argparse
+import datetime
 import glob
 import hashlib
 import importlib
@@ -28,8 +29,23 @@ import yaml
 import yara
 
 from strelka import strelka, yara_extern
+from pythonjsonlogger.json import JsonFormatter
 
 shutdown_event = threading.Event()
+
+def init_logging():
+    logger = logging.getLogger('debugging')
+    logger.setLevel(logging.INFO)
+    logHandler = logging.StreamHandler()
+    formatter = JsonFormatter('%(message)s %(levelname)s %(asctime)s')
+    logHandler.setFormatter(formatter)
+    logger.addHandler(logHandler)
+
+
+def debug_log(msg, extra):
+    logger = logging.getLogger('debugging')
+    logger.info(msg, extra=extra)
+
 
 class Backend(object):
 
@@ -101,18 +117,41 @@ class Backend(object):
                 break
 
             if queue_name == b'tasks':
+                debug_log('[DEBUG] Received task', extra={
+                    'strelka_id': root_id,
+                    'expires_at': expire_at
+                })
                 file = strelka.File(pointer=root_id)
 
                 try:
                     with interruptingcow.timeout(timeout,
                                                  strelka.RequestTimeout):
+                        start_distribute = datetime.now()
                         self.distribute(root_id, file, expire_at)
+
+                        end_distribute = datetime.now()
+                        debug_log('[DEBUG] Scanning complete', extra={
+                            'strelka_id': root_id,
+                            'expires_at': expire_at,
+                            'took_ms': (end_distribute - start_distribute).total_seconds() * 1000
+                        })
+
+                        start_emit_result = datetime.now()
                         p = self.coordinator.pipeline(transaction=False)
                         p.rpush(f'event:{root_id}', 'FIN')
                         p.expireat(f'event:{root_id}', expire_at)
                         p.execute()
+                        end_emit_result = datetime.now()
+                        debug_log('[DEBUG] Result event emitted', extra={
+                            'strelka_id': root_id,
+                            'expires_at': expire_at,
+                            'took_ms': (end_emit_result - start_emit_result).total_seconds() * 1000
+                        })
 
                 except strelka.RequestTimeout:
+                    debug_log('[DEBUG] Task timeout', extra={
+                        'strelka_id': root_id
+                    })
                     logging.debug(f'request {root_id} timed out')
                 except Exception:
                     logging.exception('unknown exception')
@@ -457,6 +496,7 @@ def handle_sigint(signum, frame):
 
 
 def main():
+    init_logging()
     signal.signal(signal.SIGINT, handle_sigint)
 
     parser = argparse.ArgumentParser(prog='strelka-worker',
