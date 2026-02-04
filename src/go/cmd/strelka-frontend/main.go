@@ -63,28 +63,29 @@ var (
 )
 
 func DebugLog(msg string, fields ...zap.Field) {
+	// The value here doesn't matter, we'll just check for its existence
+	if _, enableDebugLogging := os.LookupEnv("ENABLE_DEBUG_LOGGING"); !enableDebugLogging {
+		return
+	}
+
 	loggerOnce.Do(func() {
-		// The value here doesn't matter, we'll just check for its existence
-		_, enableDebugLogging := os.LookupEnv("ENABLE_DEBUG_LOGGING")
-		if enableDebugLogging {
-			encoderConfig := zap.NewProductionEncoderConfig()
-			encoderConfig.MessageKey = "message"
-			encoderConfig.LevelKey = "status"
-			encoderConfig.TimeKey = "ts"
-			encoderConfig.NameKey = "logger"
-			encoderConfig.CallerKey = "caller"
-			encoderConfig.FunctionKey = zapcore.OmitKey
-			encoderConfig.StacktraceKey = "stacktrace"
+		encoderConfig := zap.NewProductionEncoderConfig()
+		encoderConfig.MessageKey = "message"
+		encoderConfig.LevelKey = "status"
+		encoderConfig.TimeKey = "ts"
+		encoderConfig.NameKey = "logger"
+		encoderConfig.CallerKey = "caller"
+		encoderConfig.FunctionKey = zapcore.OmitKey
+		encoderConfig.StacktraceKey = "stacktrace"
 
-			cfg := zap.NewProductionConfig()
-			cfg.EncoderConfig = encoderConfig
+		cfg := zap.NewProductionConfig()
+		cfg.EncoderConfig = encoderConfig
 
-			logger, err := cfg.Build()
-			if err != nil {
-				log.Printf("error initializing logger: %v\n", err)
-			}
-			loggerInstance = logger
+		logger, err := cfg.Build()
+		if err != nil {
+			log.Printf("error initializing logger: %v\n", err)
 		}
+		loggerInstance = logger
 	})
 
 	if loggerInstance != nil {

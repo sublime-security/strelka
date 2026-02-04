@@ -34,17 +34,19 @@ from pythonjsonlogger.json import JsonFormatter
 shutdown_event = threading.Event()
 
 def init_logging():
-    logger = logging.getLogger('debugging')
-    logger.setLevel(logging.INFO)
-    logHandler = logging.StreamHandler()
-    formatter = JsonFormatter('%(message)s %(levelname)s %(asctime)s')
-    logHandler.setFormatter(formatter)
-    logger.addHandler(logHandler)
+    if 'ENABLE_DEBUG_LOGGING' in os.environ:
+        logger = logging.getLogger('debugging')
+        logger.setLevel(logging.INFO)
+        logHandler = logging.StreamHandler()
+        formatter = JsonFormatter('%(message)s %(levelname)s %(asctime)s')
+        logHandler.setFormatter(formatter)
+        logger.addHandler(logHandler)
 
 
 def debug_log(msg, extra):
-    logger = logging.getLogger('debugging')
-    logger.info(msg, extra=extra)
+    if 'ENABLE_DEBUG_LOGGING' in os.environ:
+        logger = logging.getLogger('debugging')
+        logger.info(msg, extra=extra)
 
 
 class Backend(object):
