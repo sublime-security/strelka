@@ -21,6 +21,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"gopkg.in/yaml.v2"
@@ -66,7 +67,19 @@ func DebugLog(msg string, fields ...zap.Field) {
 		// The value here doesn't matter, we'll just check for its existence
 		_, enableDebugLogging := os.LookupEnv("ENABLE_DEBUG_LOGGING")
 		if enableDebugLogging {
-			logger, err := zap.NewProduction()
+			encoderConfig := zap.NewProductionEncoderConfig()
+			encoderConfig.MessageKey = "message"
+			encoderConfig.LevelKey = "status"
+			encoderConfig.TimeKey = "ts"
+			encoderConfig.NameKey = "logger"
+			encoderConfig.CallerKey = "caller"
+			encoderConfig.FunctionKey = zapcore.OmitKey
+			encoderConfig.StacktraceKey = "stacktrace"
+
+			cfg := zap.NewProductionConfig()
+			cfg.EncoderConfig = encoderConfig
+
+			logger, err := cfg.Build()
 			if err != nil {
 				log.Printf("error initializing logger: %v\n", err)
 			}
