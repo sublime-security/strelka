@@ -14,11 +14,13 @@ import (
 	"os/signal"
 	"strconv"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	_ "google.golang.org/grpc/encoding/gzip"
 	"gopkg.in/yaml.v2"
@@ -52,6 +54,29 @@ type request struct {
 	Id         string              `json:"id,omitempty"`
 	Source     string              `json:"source,omitempty"`
 	Time       int64               `json:"time,omitempty"`
+}
+
+var (
+	loggerInstance *zap.Logger
+	loggerOnce     sync.Once
+)
+
+func DebugLog(msg string, fields ...zap.Field) {
+	loggerOnce.Do(func() {
+		// The value here doesn't matter, we'll just check for its existence
+		_, enableDebugLogging := os.LookupEnv("ENABLE_DEBUG_LOGGING")
+		if enableDebugLogging {
+			logger, err := zap.NewProduction()
+			if err != nil {
+				log.Printf("error initializing logger: %v\n", err)
+			}
+			loggerInstance = logger
+		}
+	})
+
+	if loggerInstance != nil {
+		loggerInstance.Info(msg, fields...)
+	}
 }
 
 func (s *server) Check(ctx context.Context, req *grpc_health_v1.HealthCheckRequest) (*grpc_health_v1.HealthCheckResponse, error) {
@@ -178,6 +203,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		}
 	}
 
+	startQueueTask := time.Now()
 	if err := s.coordinator.cli.ZAdd(
 		stream.Context(),
 		"tasks",
@@ -186,7 +212,20 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			Member: id,
 		},
 	).Err(); err != nil {
+		DebugLog("[DEBUG] Failed to queue task",
+			zap.String("request_id", req.Id),
+			zap.String("strelka_id", id),
+			zap.Duration("took", time.Since(startQueueTask)),
+			zap.Error(err),
+		)
 		return fmt.Errorf("sending task: %w", err)
+	} else {
+		DebugLog("[DEBUG] Queued task",
+			zap.String("request_id", req.Id),
+			zap.String("strelka_id", id),
+			zap.Time("deadline", deadline),
+			zap.Duration("took", time.Since(startQueueTask)),
+		)
 	}
 
 	var tx *redis.Pipeliner
@@ -196,8 +235,15 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		(*tx).Del(stream.Context(), sha)
 	}
 
+	startAwaitResponse := time.Now()
 	for {
 		if err := stream.Context().Err(); err != nil {
+			DebugLog("[DEBUG] Stream error",
+				zap.String("request_id", req.Id),
+				zap.String("strelka_id", id),
+				zap.Duration("waited", time.Since(startAwaitResponse)),
+				zap.Error(err),
+			)
 			return fmt.Errorf("context closed: %w", err)
 		}
 
@@ -216,8 +262,19 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 		lpop := res[1]
 		if lpop == "FIN" {
+			DebugLog("[DEBUG] FIN response received",
+				zap.String("request_id", req.Id),
+				zap.String("strelka_id", id),
+				zap.Duration("waited", time.Since(startAwaitResponse)),
+			)
 			break
 		}
+
+		DebugLog("[DEBUG] Response received",
+			zap.String("request_id", req.Id),
+			zap.String("strelka_id", id),
+			zap.Duration("waited", time.Since(startAwaitResponse)),
+		)
 
 		if tx != nil {
 			(*tx).RPush(stream.Context(), sha, lpop)
@@ -246,8 +303,22 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		}
 
 		s.responses <- resp
+
+		startSendResponse := time.Now()
 		if err := stream.Send(resp); err != nil {
+			DebugLog("[DEBUG] Error sending response",
+				zap.String("request_id", req.Id),
+				zap.String("strelka_id", id),
+				zap.Duration("took", time.Since(startSendResponse)),
+				zap.Error(err),
+			)
 			return fmt.Errorf("send stream: %w", err)
+		} else {
+			DebugLog("[DEBUG] Sent response",
+				zap.String("request_id", req.Id),
+				zap.String("strelka_id", id),
+				zap.Duration("took", time.Since(startSendResponse)),
+			)
 		}
 	}
 
