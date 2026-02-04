@@ -35,9 +35,10 @@ shutdown_event = threading.Event()
 
 def init_logging():
     if 'ENABLE_DEBUG_LOGGING' in os.environ:
+        logging.info('Enabling debug logger')
         logger = logging.getLogger('debugging')
         logger.setLevel(logging.INFO)
-        logHandler = logging.StreamHandler()
+        logHandler = logging.StreamHandler(stream=sys.stdout)
         formatter = JsonFormatter('%(message)s %(levelname)s %(asctime)s')
         logHandler.setFormatter(formatter)
         logger.addHandler(logHandler)
