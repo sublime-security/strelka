@@ -43,7 +43,7 @@ def init_verbose_logging():
         logger.addHandler(logHandler)
 
 
-def debug_log(msg, extra):
+def debug_log(msg, extra=None):
     if 'ENABLE_VERBOSE_LOGGING' in os.environ:
         logger = logging.getLogger('debugging')
         logger.info(msg, extra=extra)
