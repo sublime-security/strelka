@@ -33,8 +33,8 @@ from pythonjsonlogger.json import JsonFormatter
 
 shutdown_event = threading.Event()
 
-def init_logging():
-    if 'ENABLE_DEBUG_LOGGING' in os.environ:
+def init_verbose_logging():
+    if 'ENABLE_VERBOSE_LOGGING' in os.environ:
         logger = logging.getLogger('debugging')
         logger.setLevel(logging.INFO)
         logHandler = logging.StreamHandler()
@@ -44,7 +44,7 @@ def init_logging():
 
 
 def debug_log(msg, extra):
-    if 'ENABLE_DEBUG_LOGGING' in os.environ:
+    if 'ENABLE_VERBOSE_LOGGING' in os.environ:
         logger = logging.getLogger('debugging')
         logger.info(msg, extra=extra)
 
@@ -102,6 +102,7 @@ class Backend(object):
 
             task = self.coordinator.bzpopmin(['tasks', 'tasks_compile_yara', 'tasks_compile_and_sync_yara'], timeout=5)
             if task is None:
+                debug_log('[VERBOSE] Received no tasks')
                 continue
 
             (queue_name, root_id, expire_at) = task
@@ -110,6 +111,10 @@ class Backend(object):
             timeout = math.ceil(expire_at - time.time())
 
             if timeout <= 0:
+                debug_log('[VERBOSE] Received expired task', extra={
+                    'strelka_id': root_id,
+                    'expires_at': expire_at
+                })
                 continue
 
             if shutdown_event.is_set():
@@ -119,7 +124,7 @@ class Backend(object):
                 break
 
             if queue_name == b'tasks':
-                debug_log('[DEBUG] Received task', extra={
+                debug_log('[VERBOSE] Received task', extra={
                     'strelka_id': root_id,
                     'expires_at': expire_at
                 })
@@ -132,7 +137,7 @@ class Backend(object):
                         self.distribute(root_id, file, expire_at)
 
                         end_distribute = datetime.now()
-                        debug_log('[DEBUG] Scanning complete', extra={
+                        debug_log('[VERBOSE] Scanning complete', extra={
                             'strelka_id': root_id,
                             'expires_at': expire_at,
                             'took_ms': (end_distribute - start_distribute).total_seconds() * 1000
@@ -144,14 +149,14 @@ class Backend(object):
                         p.expireat(f'event:{root_id}', expire_at)
                         p.execute()
                         end_emit_result = datetime.now()
-                        debug_log('[DEBUG] Result event emitted', extra={
+                        debug_log('[VERBOSE] Result event emitted', extra={
                             'strelka_id': root_id,
                             'expires_at': expire_at,
                             'took_ms': (end_emit_result - start_emit_result).total_seconds() * 1000
                         })
 
                 except strelka.RequestTimeout:
-                    debug_log('[DEBUG] Task timeout', extra={
+                    debug_log('[VERBOSE] Task timeout', extra={
                         'strelka_id': root_id
                     })
                     logging.debug(f'request {root_id} timed out')
@@ -498,7 +503,6 @@ def handle_sigint(signum, frame):
 
 
 def main():
-    init_logging()
     signal.signal(signal.SIGINT, handle_sigint)
 
     parser = argparse.ArgumentParser(prog='strelka-worker',
@@ -528,6 +532,7 @@ def main():
     log_cfg_path = backend_cfg.get('logging_cfg')
     with open(log_cfg_path) as f:
         logging.config.dictConfig(yaml.safe_load(f.read()))
+    init_verbose_logging()
     logging.info(f'using backend configuration {backend_cfg_path}')
 
     try:

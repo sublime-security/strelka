@@ -64,7 +64,7 @@ var (
 
 func DebugLog(msg string, fields ...zap.Field) {
 	// The value here doesn't matter, we'll just check for its existence
-	if _, enableDebugLogging := os.LookupEnv("ENABLE_DEBUG_LOGGING"); !enableDebugLogging {
+	if _, enableDebugLogging := os.LookupEnv("ENABLE_VERBOSE_LOGGING"); !enableDebugLogging {
 		return
 	}
 
@@ -226,7 +226,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			Member: id,
 		},
 	).Err(); err != nil {
-		DebugLog("[DEBUG] Failed to queue task",
+		DebugLog("[VERBOSE] Failed to queue task",
 			zap.String("request_id", req.Id),
 			zap.String("strelka_id", id),
 			zap.Duration("took", time.Since(startQueueTask)),
@@ -234,7 +234,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 		)
 		return fmt.Errorf("sending task: %w", err)
 	} else {
-		DebugLog("[DEBUG] Queued task",
+		DebugLog("[VERBOSE] Queued task",
 			zap.String("request_id", req.Id),
 			zap.String("strelka_id", id),
 			zap.Time("deadline", deadline),
@@ -252,7 +252,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 	startAwaitResponse := time.Now()
 	for {
 		if err := stream.Context().Err(); err != nil {
-			DebugLog("[DEBUG] Stream error",
+			DebugLog("[VERBOSE] Stream error",
 				zap.String("request_id", req.Id),
 				zap.String("strelka_id", id),
 				zap.Duration("waited", time.Since(startAwaitResponse)),
@@ -276,7 +276,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 		lpop := res[1]
 		if lpop == "FIN" {
-			DebugLog("[DEBUG] FIN response received",
+			DebugLog("[VERBOSE] FIN response received",
 				zap.String("request_id", req.Id),
 				zap.String("strelka_id", id),
 				zap.Duration("waited", time.Since(startAwaitResponse)),
@@ -284,7 +284,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			break
 		}
 
-		DebugLog("[DEBUG] Response received",
+		DebugLog("[VERBOSE] Response received",
 			zap.String("request_id", req.Id),
 			zap.String("strelka_id", id),
 			zap.Duration("waited", time.Since(startAwaitResponse)),
@@ -320,7 +320,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 
 		startSendResponse := time.Now()
 		if err := stream.Send(resp); err != nil {
-			DebugLog("[DEBUG] Error sending response",
+			DebugLog("[VERBOSE] Error sending response",
 				zap.String("request_id", req.Id),
 				zap.String("strelka_id", id),
 				zap.Duration("took", time.Since(startSendResponse)),
@@ -328,7 +328,7 @@ func (s *server) ScanFile(stream strelka.Frontend_ScanFileServer) error {
 			)
 			return fmt.Errorf("send stream: %w", err)
 		} else {
-			DebugLog("[DEBUG] Sent response",
+			DebugLog("[VERBOSE] Sent response",
 				zap.String("request_id", req.Id),
 				zap.String("strelka_id", id),
 				zap.Duration("took", time.Since(startSendResponse)),
