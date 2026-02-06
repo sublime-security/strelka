@@ -1,4 +1,5 @@
 import copy
+from datetime import datetime
 import glob
 import hashlib
 import logging
@@ -9,6 +10,14 @@ import time
 import yara
 
 from strelka import strelka, yara_extern
+
+def trace_scanner(scanner, msg, extra=None):
+    if 'ENABLE_SCANNER_TRACE_LOGGING' in os.environ:
+        logging.info(f'[TRACE][SCANNER] {msg}', extra={
+            'scanner': scanner,
+            **extra
+        })
+
 
 class ScanYara(strelka.Scanner):
     """Scans files with YARA.
@@ -58,6 +67,7 @@ class ScanYara(strelka.Scanner):
 
         try:
             if self.compiled_yara is None and os.path.exists(location):
+                start_compilation_time = datetime.now()
                 if os.path.isdir(location):
                     globbed_yara_paths = glob.iglob(f'{location}/**/*.yar*', recursive=True)
                     yara_filepaths = {f'namespace_{i}':entry for (i, entry) in enumerate(globbed_yara_paths)}
@@ -65,8 +75,19 @@ class ScanYara(strelka.Scanner):
                         self.compiled_yara = yara.compile(filepaths=yara_filepaths, externals=externals)
                 else:
                     self.compiled_yara = yara.compile(filepath=location, externals=externals)
+                end_compilation_time = datetime.now()
+                compilation_time_ms = (end_compilation_time - start_compilation_time).total_seconds() * 1000
+                trace_scanner(self.name, 'compiled yara', extra={
+                    'strelka_id': options['strelka_id'],
+                    'yara_compilation_took_ms': compilation_time_ms,
+                    'custom_yara': compiled_custom_yara_all != ''
+                })
+                self.event['compilation_ms'] = compilation_time_ms
 
         except (yara.Error, yara.SyntaxError):
+            trace_scanner(self.name, 'error compiling yara', extra={
+                'strelka_id': options['strelka_id']
+            })
             self.flags.append('compiling_error')
 
         self.event['matches'] = []

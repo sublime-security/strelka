@@ -408,6 +408,7 @@ class Backend(object):
                             start_scanner_time = datetime.now()
                             name = scanner['name']
                             options = scanner.get('options', {})
+                            options['strelka_id'] = root_id
                             if name == 'ScanYara':
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
                                 if yara_cache_key:
