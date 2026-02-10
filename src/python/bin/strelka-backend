@@ -405,22 +405,36 @@ class Backend(object):
 
                     for scanner in scanner_list:
                         try:
-                            start_scanner_time = datetime.now()
                             name = scanner['name']
                             options = scanner.get('options', {})
+                            options['strelka_id'] = root_id
                             if name == 'ScanYara':
+                                start_yara_retrieval = datetime.now()
+                                yara_load_took_ms = 0
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
                                 if yara_cache_key:
                                     yara_cache_key = yara_cache_key.decode()
                                     yara_data = self.coordinator.get(f'yara:compiled_all:{yara_cache_key}')
                                     if yara_data:
+                                        start_yara_load = datetime.now()
                                         buf = io.BytesIO(yara_data)
                                         yara_dataC = yara.load(file=buf)
                                         options['compiled_custom_yara_all'] = yara_dataC
+                                        end_yara_load = datetime.now()
+                                        yara_load_took_ms = (end_yara_load - start_yara_load).total_seconds() * 1000
 
                                 if legacy_yara_data: # backcompat
                                     options['source'] = legacy_yara_data.decode()
 
+                                end_yara_retrieval = datetime.now()
+                                trace_scanner(name, 'yara data retrieved', extra={
+                                    'strelka_id': root_id,
+                                    'deadline': expire_at,
+                                    'yara_retrieval_took_ms': (end_yara_retrieval - start_yara_retrieval).total_seconds() * 1000,
+                                    'yara_load_took_ms': yara_load_took_ms
+                                })
+
+                            start_scanner_time = datetime.now()
                             und_name = inflection.underscore(name)
                             scanner_import = f'strelka.scanners.{und_name}'
                             module = importlib.import_module(scanner_import)
