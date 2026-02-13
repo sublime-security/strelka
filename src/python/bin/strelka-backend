@@ -41,7 +41,10 @@ def enable_json_logging():
     handler = logging.StreamHandler(stream=sys.stdout)
 
     # Set up the JSON formatter for the handler
-    formatter = JsonFormatter('%(message)s %(levelname)s %(asctime)s')
+    formatter = JsonFormatter(
+        '%(asctime)s %(levelname)s %(message)s',
+        datefmt='%Y-%m-%dT%H:%M:%S%z'
+    )
     handler.setFormatter(formatter)
 
     # Override the default handlers and attach our JSON handler
@@ -154,11 +157,12 @@ class Backend(object):
                     with interruptingcow.timeout(timeout,
                                                  strelka.RequestTimeout):
                         start_scan_time = datetime.now()
-                        self.distribute(root_id, file, expire_at)
+                        files_scanned = self.distribute(root_id, file, expire_at)
                         end_scan_time = datetime.now()
                         trace('full scan complete', extra={
                             'strelka_id': root_id,
                             'deadline': expire_at,
+                            'files_scanned': files_scanned,
                             'full_scan_took_ms': (end_scan_time - start_scan_time).total_seconds() * 1000
                         })
 
@@ -336,8 +340,10 @@ class Backend(object):
                                              exception=strelka.DistributionTimeout):
                     start_file_scan_time = datetime.now()
                     if file.depth > self.limits.get('max_depth'):
-                        logging.info(f'request {root_id} exceeded maximum depth')
-                        return
+                        logging.info(f'request {root_id} exceeded maximum depth', extra={
+                            'strelka_id': root_id
+                        })
+                        return 0
 
                     data = b''
                     legacy_yara_data = b''
@@ -482,6 +488,7 @@ class Backend(object):
                     trace('file scan complete', extra={
                         'strelka_id': root_id,
                         'deadline': expire_at,
+                        'scanner_count': len(scanner_list),
                         'data_collection_took_ms': (end_pop_data_time - start_pop_data_time).total_seconds() * 1000,
                         'file_scan_took_ms': (end_scan_file_time - start_file_scan_time).total_seconds() * 1000,
                         'result_emit_took_ms': (end_emit_result_time - start_emit_result_time).total_seconds() * 1000
@@ -490,10 +497,13 @@ class Backend(object):
             except strelka.DistributionTimeout:
                 logging.exception(f'node {file.uid} timed out')
 
+            nested_file_counts = 0
             for f in files:
                 f.parent = file.uid
                 f.depth = file.depth + 1
-                self.distribute(root_id, f, expire_at)
+                nested_file_counts += self.distribute(root_id, f, expire_at)
+
+            return 1 + len(files) + nested_file_counts
 
         except strelka.RequestTimeout:
             raise
