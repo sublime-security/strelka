@@ -140,7 +140,9 @@ class Backend(object):
                 continue
 
             if shutdown_event.is_set():
-                logging.info(f'Received task after shutdown signal, re-queuing {task}.')
+                trace(f'Received task after shutdown signal, re-queuing {task}.', extra={
+                    'strelka_id': root_id
+                })
                 # We picked up a task after shutdown_event was set. We'll put it back on the queue for another worker
                 self.coordinator.zadd(queue_name, {root_id: expire_at})
                 break
@@ -182,9 +184,11 @@ class Backend(object):
                     trace('scan timed out', extra={
                         'strelka_id': root_id
                     })
-                    logging.debug(f'request {root_id} timed out')
-                except Exception:
-                    logging.exception('unknown exception')
+                except Exception as e:
+                    trace('scan encountered an error', extra={
+                        'strelka_id': root_id,
+                        'error': str(e)
+                    })
 
                 count += 1
 
@@ -362,6 +366,7 @@ class Backend(object):
                         legacy_yara_data = self.coordinator.get(f'yara:{root_id}') # backcompat
                     end_pop_data_time = datetime.now()
 
+                    start_taste_time = datetime.now()
                     file.add_flavors({'mime': self.taste_mime(data)})
                     file.add_flavors({'yara': self.taste_yara(data)})
                     flavors = (
@@ -369,6 +374,7 @@ class Backend(object):
                         + file.flavors.get('mime', [])
                         + file.flavors.get('yara', [])
                     )
+                    end_taste_time = datetime.now()
 
                     scanner_list = []
                     for name in self.scanners:
@@ -410,8 +416,8 @@ class Backend(object):
                     scan = {}
 
                     for scanner in scanner_list:
+                        name = scanner['name']
                         try:
-                            name = scanner['name']
                             options = scanner.get('options', {})
                             options['strelka_id'] = root_id
                             if name == 'ScanYara':
@@ -461,17 +467,36 @@ class Backend(object):
                                 **s,
                             }
                             end_scanner_time = datetime.now()
+
+                            scanner_limit_secs = self.limits.get('scanner')
+                            runaway_scanner = False
+                            if scanner_limit_secs:
+                                scanner_took_secs = (end_scanner_time - start_scanner_time).total_seconds()
+                                runaway_scanner = (scanner_limit_secs - scanner_took_secs) <= 0
+
                             trace_scanner(name, 'scan completed', extra={
                                 'strelka_id': root_id,
                                 'deadline': expire_at,
-                                'scanner_took_ms': (end_scanner_time - start_scanner_time).total_seconds() * 1000
+                                'scanner_took_ms': scanner_took_secs * 1000,
+                                'runaway_scanner': runaway_scanner
                             })
 
                         except ModuleNotFoundError:
-                            logging.exception(f'scanner {name} not found')
-
+                            trace_scanner(name, 'scanner not found', extra={
+                                'strelka_id': root_id,
+                                'deadline': expire_at,
+                            })
+                        except strelka.RequestTimeout:
+                            trace_scanner(name, 'scanner timed out', extra={
+                                'strelka_id': root_id,
+                                'deadline': expire_at
+                            })
                         except Exception as e:
-                            logging.exception('error: ' + str(e))
+                            trace_scanner(name, 'scanner encountered an error', extra={
+                                'strelka_id': root_id,
+                                'deadline': expire_at,
+                                'error': str(e)
+                            })
 
                     event = {
                         **{'file': file_dict},
@@ -489,13 +514,16 @@ class Backend(object):
                         'strelka_id': root_id,
                         'deadline': expire_at,
                         'scanner_count': len(scanner_list),
+                        'tasting_took_ms': (end_taste_time - start_taste_time).total_seconds() * 1000,
                         'data_collection_took_ms': (end_pop_data_time - start_pop_data_time).total_seconds() * 1000,
                         'file_scan_took_ms': (end_scan_file_time - start_file_scan_time).total_seconds() * 1000,
                         'result_emit_took_ms': (end_emit_result_time - start_emit_result_time).total_seconds() * 1000
                     })
 
             except strelka.DistributionTimeout:
-                logging.exception(f'node {file.uid} timed out')
+                trace('file scan timed out', extra={
+                    'strelka_id': root_id
+                })
 
             nested_file_counts = 0
             for f in files:
