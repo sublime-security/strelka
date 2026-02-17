@@ -121,9 +121,6 @@ class Backend(object):
             end_pop_time = datetime.now()
             receive_time_ms = (end_pop_time - start_pop_time).total_seconds() * 1000
             if task is None:
-                trace('received no tasks', extra={
-                    'receive_time_ms': receive_time_ms
-                })
                 continue
 
             (queue_name, root_id, expire_at) = task
