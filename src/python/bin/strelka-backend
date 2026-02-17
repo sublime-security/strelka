@@ -121,9 +121,6 @@ class Backend(object):
             end_pop_time = datetime.now()
             receive_time_ms = (end_pop_time - start_pop_time).total_seconds() * 1000
             if task is None:
-                trace('received no tasks', extra={
-                    'receive_time_ms': receive_time_ms
-                })
                 continue
 
             (queue_name, root_id, expire_at) = task
@@ -210,7 +207,10 @@ class Backend(object):
                     logging.exception('unknown exception')
 
             elif queue_name == b'tasks_compile_and_sync_yara':
-                logging.info('syncing yara')
+                trace('received compile and sync yara task', extra={
+                    'strelka_id': root_id,
+                    'deadline': expire_at,
+                })
                 try:
                     with interruptingcow.timeout(timeout,
                                                  strelka.RequestTimeout):
@@ -228,9 +228,16 @@ class Backend(object):
                             self.coordinator.lpush(f'yara:compile_and_sync:done:{root_id}', 'FIN')
 
                 except strelka.RequestTimeout:
-                    logging.debug(f'request {root_id}:compile_and_sync timed out')
-                except Exception:
-                    logging.exception('unknown exception')
+                    trace('compile and sync yara task timed out', extra={
+                        'strelka_id': root_id,
+                        'deadline': expire_at,
+                    })
+                except Exception as e:
+                    trace('unexpected error during yara compile and sync', extra={
+                        'strelka_id': root_id,
+                        'deadline': expire_at,
+                        'error': str(e)
+                    })
 
         logging.info(f'shutdown after scanning {count} file(s),'
                      f' syncing {synced} yara files, and'
@@ -263,28 +270,45 @@ class Backend(object):
         return errMsg
 
     def compile_and_sync_yara(self, yara_cache_key, root_id):
+        start_compile_and_sync = datetime.now()
         synced = 0
 
+        start_delete_keys = datetime.now()
         self.coordinator.delete(f'yara:compiled_all:{yara_cache_key}')
         self.coordinator.delete(f'yara:hash:{yara_cache_key}')
+        end_delete_keys = datetime.now()
 
         hash = hashlib.sha256()
         errMsg = ''
         yara_src = ''
 
+        lpop_time = 0
+        load_time = 0
+        compile_time = 0
         while 1:
+            start_pop = datetime.now()
             pop = self.coordinator.lpop(f'yara:compile_and_sync:{root_id}')
+            end_pop = datetime.now()
+            lpop_time += (end_pop - start_pop).total_seconds() * 1000
             if not pop:
                 break
 
             data = {}
             try:
+                start_load = datetime.now()
                 data = json.loads(pop.decode())
+                stop_load = datetime.now()
+                load_time += (stop_load - start_load).total_seconds() * 1000
             except Exception as e:
+                trace('error loading yara data', extra={
+                    'strelka_id': root_id,
+                    'yara_cache_key': yara_cache_key,
+                    'error': str(e)
+                })
                 errMsg = 'loading json: ' + str(e)
-                logging.error(errMsg)
                 continue
 
+            start_compile = datetime.now()
             try:
                 # compile single signature for validation
                 compiled_yara = yara.compile(source=data['data'], externals=yara_extern.EXTERNAL_VARS)
@@ -294,13 +318,27 @@ class Backend(object):
                 synced += 1
             except (yara.Error, yara.SyntaxError) as e:
                 errMsg = 'compiling yara: ' + str(e)
-                logging.error(errMsg)
+                trace('yara compilation error', extra={
+                    'strelka_id': root_id,
+                    'yara_cache_key': yara_cache_key,
+                    'error': str(e)
+                })
             except Exception as e2:
                 errMsg = 'compiling yara: ' + str(e2)
-                logging.error(errMsg)
+                trace('unexpected yara compilation error', extra={
+                    'strelka_id': root_id,
+                    'yara_cache_key': yara_cache_key,
+                    'error': str(e2)
+                })
+            finally:
+                stop_compile = datetime.now()
+                compile_time += (stop_compile - start_compile).total_seconds() * 1000
 
+
+        compile_all_ms = 0
         if yara_src:
             # compile all valid signatures into single object for faster execution
+            start_compile_all = datetime.now()
             try:
                 compiled_yara = yara.compile(source=yara_src, externals=yara_extern.EXTERNAL_VARS)
                 buf = io.BytesIO()
@@ -311,15 +349,48 @@ class Backend(object):
                 self.coordinator.set(f'yara:compiled_all:{yara_cache_key}', buf.getvalue())
             except (yara.Error, yara.SyntaxError) as e:
                 errMsg = 'compiling yara: ' + str(e)
-                logging.error(errMsg)
+                trace('yara all compilation error', extra={
+                    'strelka_id': root_id,
+                    'yara_cache_key': yara_cache_key,
+                    'error': str(e)
+                })
                 synced = 0
             except Exception as e2:
                 errMsg = 'compiling yara: ' + str(e2)
-                logging.error(errMsg)
+                trace('unexpected yara all compilation error', extra={
+                    'strelka_id': root_id,
+                    'yara_cache_key': yara_cache_key,
+                    'error': str(e2)                    
+                })
                 synced = 0
+            finally:
+                stop_compile_all = datetime.now()
+                compile_all_ms = (stop_compile_all - start_compile_all).total_seconds() * 1000
+        else:
+            trace('no yara source data found', extra={
+                'strelka_id': root_id,
+                'yara_cache_key': yara_cache_key,
+            })
 
+        start_emit_results = datetime.now()
         self.coordinator.set(f'yara:hash:{yara_cache_key}', hash.hexdigest())
         self.coordinator.set(f'yara:synced:{root_id}', synced)
+        stop_emit_results = datetime.now()
+
+        stop_compile_and_sync = datetime.now()
+        trace('yara compilation and sync complete', extra={
+            'strelka_id': root_id,
+            'yara_cache_key': yara_cache_key,
+            'delete_keys_took_ms': (end_delete_keys - start_delete_keys).total_seconds() * 1000,
+            'yara_retrieval_took_ms': lpop_time,
+            'yara_load_took_ms': load_time,
+            'yara_compile_took_ms': compile_time,
+            'yara_compile_all_took_ms': compile_all_ms,
+            'emit_results_took_ms': (stop_emit_results - start_emit_results).total_seconds() * 1000,
+            'synced': synced,
+            'error': errMsg,
+            'yara_compile_and_sync_took_ms': (stop_compile_and_sync - start_compile_and_sync).total_seconds() * 1000
+        })
 
         return errMsg, synced
 
@@ -417,12 +488,14 @@ class Backend(object):
 
                     for scanner in scanner_list:
                         name = scanner['name']
+                        start_scanner_time = datetime.now()
                         try:
                             options = scanner.get('options', {})
                             options['strelka_id'] = root_id
                             if name == 'ScanYara':
                                 start_yara_retrieval = datetime.now()
                                 yara_load_took_ms = 0
+                                yara_rules = 0
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
                                 if yara_cache_key:
                                     yara_cache_key = yara_cache_key.decode()
@@ -432,6 +505,7 @@ class Backend(object):
                                         buf = io.BytesIO(yara_data)
                                         yara_dataC = yara.load(file=buf)
                                         options['compiled_custom_yara_all'] = yara_dataC
+                                        yara_rules = len(yara_dataC)
                                         end_yara_load = datetime.now()
                                         yara_load_took_ms = (end_yara_load - start_yara_load).total_seconds() * 1000
 
@@ -443,10 +517,12 @@ class Backend(object):
                                     'strelka_id': root_id,
                                     'deadline': expire_at,
                                     'yara_retrieval_took_ms': (end_yara_retrieval - start_yara_retrieval).total_seconds() * 1000,
-                                    'yara_load_took_ms': yara_load_took_ms
+                                    'yara_load_took_ms': yara_load_took_ms,
+                                    'yara_cache_key_found': yara_cache_key is not None,
+                                    'yara_data_found': yara_data is not None,
+                                    'yara_rules': yara_rules
                                 })
 
-                            start_scanner_time = datetime.now()
                             und_name = inflection.underscore(name)
                             scanner_import = f'strelka.scanners.{und_name}'
                             module = importlib.import_module(scanner_import)
@@ -466,20 +542,6 @@ class Backend(object):
                                 **scan,
                                 **s,
                             }
-                            end_scanner_time = datetime.now()
-
-                            scanner_limit_secs = self.limits.get('scanner')
-                            runaway_scanner = False
-                            if scanner_limit_secs:
-                                scanner_took_secs = (end_scanner_time - start_scanner_time).total_seconds()
-                                runaway_scanner = (scanner_limit_secs - scanner_took_secs) <= 0
-
-                            trace_scanner(name, 'scan completed', extra={
-                                'strelka_id': root_id,
-                                'deadline': expire_at,
-                                'scanner_took_ms': scanner_took_secs * 1000,
-                                'runaway_scanner': runaway_scanner
-                            })
 
                         except ModuleNotFoundError:
                             trace_scanner(name, 'scanner not found', extra={
@@ -496,6 +558,20 @@ class Backend(object):
                                 'strelka_id': root_id,
                                 'deadline': expire_at,
                                 'error': str(e)
+                            })
+                        finally:
+                            end_scanner_time = datetime.now()
+                            scanner_took_secs = (end_scanner_time - start_scanner_time).total_seconds()
+                            scanner_limit_secs = self.limits.get('scanner')
+                            runaway_scanner = False
+                            if scanner_limit_secs:
+                                runaway_scanner = (scanner_limit_secs - scanner_took_secs) <= 0
+
+                            trace_scanner(name, 'scan completed', extra={
+                                'strelka_id': root_id,
+                                'deadline': expire_at,
+                                'scanner_took_ms': scanner_took_secs * 1000,
+                                'runaway_scanner': runaway_scanner
                             })
 
                     event = {
