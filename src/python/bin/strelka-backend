@@ -495,7 +495,7 @@ class Backend(object):
                             if name == 'ScanYara':
                                 start_yara_retrieval = datetime.now()
                                 yara_load_took_ms = 0
-                                yara_rules = 0
+                                yara_rule_count = 0
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
                                 if yara_cache_key:
                                     yara_cache_key = yara_cache_key.decode()
@@ -505,7 +505,7 @@ class Backend(object):
                                         buf = io.BytesIO(yara_data)
                                         yara_dataC = yara.load(file=buf)
                                         options['compiled_custom_yara_all'] = yara_dataC
-                                        yara_rules = len(yara_dataC)
+                                        yara_rule_count = sum(1 for _ in yara_dataC)
                                         end_yara_load = datetime.now()
                                         yara_load_took_ms = (end_yara_load - start_yara_load).total_seconds() * 1000
 
@@ -520,7 +520,7 @@ class Backend(object):
                                     'yara_load_took_ms': yara_load_took_ms,
                                     'yara_cache_key_found': yara_cache_key is not None,
                                     'yara_data_found': yara_data is not None,
-                                    'yara_rules': yara_rules
+                                    'yara_rule_count': yara_rule_count
                                 })
 
                             und_name = inflection.underscore(name)
