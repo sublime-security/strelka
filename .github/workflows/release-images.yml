@@ -26,33 +26,23 @@ jobs:
     steps:
 
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         id: login-aws
-        continue-on-error: true
         with:
           output-credentials: true
           role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
 
-      - name: 2nd Attempt Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        if: ${{ steps.login-aws.outputs.aws-access-key-id == '' }}
-        with:
-          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
-          role-duration-seconds: 7200 # 2 hours
-          aws-region: us-east-1
-
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
       - name: Configure AWS credentials (Gov Cloud)
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         id: login-aws-gov-cloud
         with:
           output-credentials: true
@@ -61,18 +51,9 @@ jobs:
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-gov-west-1
 
-      - name: 2nd Attempt Configure AWS credentials (Gov Cloud)
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        if: ${{ steps.login-aws-gov-cloud.outputs.aws-access-key-id == '' }}
-        with:
-          unset-current-credentials: true
-          role-to-assume: ${{ secrets.ECR_GOV_CLOUD_REPO_ROLE }}
-          role-duration-seconds: 7200 # 2 hours
-          aws-region: us-gov-west-1
-
       - name: Login to Amazon ECR (GovCloud)
         id: login-ecr-gov-cloud
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
       - name: Validate ECR Repos
         run: |
@@ -90,19 +71,19 @@ jobs:
           echo "::set-output name=SEM_VER::$SEM_VER"
 
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v1
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
         with:
           driver: docker
 
       - name: Build FrontEnd
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           file: build/go/frontend/Dockerfile
           context: .
@@ -116,7 +97,7 @@ jobs:
             ${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-frontend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
 
       - name: Build BackEnd
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           file: build/python/backend/Dockerfile
           context: .
@@ -130,7 +111,7 @@ jobs:
             ${{ steps.login-ecr-gov-cloud.outputs.registry }}/strelka-backend:${{ matrix.arch }}-${{ steps.get_ver.outputs.SEM_VER }}
 
       - name: Build Manager
-        uses: docker/build-push-action@v2
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           file: build/go/manager/Dockerfile
           context: .
@@ -181,8 +162,7 @@ jobs:
 
     steps:
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         id: login-aws
         with:
           output-credentials: true
@@ -190,21 +170,12 @@ jobs:
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
 
-      - name: 2nd Attempt Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        if: ${{ steps.login-aws.outputs.aws-access-key-id == '' }}
-        with:
-          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
-          role-duration-seconds: 7200 # 2 hours
-          aws-region: us-east-1
-
       - name: Login to Amazon ECR
         id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
       - name: Configure AWS credentials (Gov Cloud)
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         id: login-aws-gov-cloud
         with:
           output-credentials: true
@@ -213,18 +184,9 @@ jobs:
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-gov-west-1
 
-      - name: 2nd Attempt Configure AWS credentials (Gov Cloud)
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        if: ${{ steps.login-aws-gov-cloud.outputs.aws-access-key-id == '' }}
-        with:
-          unset-current-credentials: true
-          role-to-assume: ${{ secrets.ECR_GOV_CLOUD_REPO_ROLE }}
-          role-duration-seconds: 7200 # 2 hours
-          aws-region: us-gov-west-1
-
       - name: Login to Amazon ECR (GovCloud)
         id: login-ecr-gov-cloud
-        uses: aws-actions/amazon-ecr-login@v1
+        uses: aws-actions/amazon-ecr-login@062b18b96a7aff071d4dc91bc00c4c1a7945b076 # v2.0.1
 
       - name: Validate ECR Repos
         run: |
@@ -235,7 +197,7 @@ jobs:
           fi
 
       - name: Login to DockerHub
-        uses: docker/login-action@v1
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -322,22 +284,13 @@ jobs:
 
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v2
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        continue-on-error: true
+        uses: aws-actions/configure-aws-credentials@8df5847569e6427dd6c4fb1cf565c83acfa8afa7 # v6.0.0
         id: login-aws
         with:
           output-credentials: true
-          role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
-          role-duration-seconds: 7200 # 2 hours
-          aws-region: us-east-1
-
-      - name: 2nd Attempt Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4.0.2
-        if: ${{ steps.login-aws.outputs.aws-access-key-id == '' }}
-        with:
           role-to-assume: ${{ secrets.ECR_REPO_ROLE }}
           role-duration-seconds: 7200 # 2 hours
           aws-region: us-east-1
@@ -351,7 +304,7 @@ jobs:
           fi
 
       - name: Slack Notification
-        uses: rtCamp/action-slack-notify@v2
+        uses: rtCamp/action-slack-notify@e31e87e03dd19038e411e38ae27cbad084a90661 # v2.3.3
         env:
           SLACK_WEBHOOK: ${{ secrets.SLACK_WEBHOOK_Z_LOG_DOCKER_BUILDS }}
           SLACK_TITLE: Strelka Images Updated
