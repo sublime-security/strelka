@@ -3,7 +3,7 @@ arc4==0.0.4
 beautifulsoup4==4.9.3
 boltons==20.2.1
 construct==2.10.67
-cryptography==44.0.1
+cryptography==46.0.5
 docker==5.0.0
 esprima==4.0.1
 eml-parser>=1.17
