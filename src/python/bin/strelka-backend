@@ -497,6 +497,7 @@ class Backend(object):
                                 yara_load_took_ms = 0
                                 yara_rule_count = 0
                                 yara_cache_key = self.coordinator.get(f'yara_cache_key:{root_id}')
+                                yara_data = None
                                 if yara_cache_key:
                                     yara_cache_key = yara_cache_key.decode()
                                     yara_data = self.coordinator.get(f'yara:compiled_all:{yara_cache_key}')
