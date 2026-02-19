@@ -1,0 +1,43 @@
+BEGIN:VCALENDAR
+METHOD:REQUEST
+PRODID:Microsoft Exchange Server 2010
+VERSION:2.0
+BEGIN:VTIMEZONE
+TZID:Greenwich Standard Time
+BEGIN:STANDARD
+DTSTART:16010101T000000
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0000
+END:STANDARD
+BEGIN:DAYLIGHT
+DTSTART:16010101T000000
+TZOFFSETFROM:+0000
+TZOFFSETTO:+0000
+END:DAYLIGHT
+END:VTIMEZONE
+BEGIN:VEVENT
+ORGANIZER;CN=ACME Corp Share-File;SENT-BY="mailto:jsmith@example.com":mailto:AcmeCorp
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=ACME Corp IT Help Desk:mailto:helpdesk@example.com
+ATTENDEE;ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=TRUE;CN=John Smith:mailto:jsmith@example.com
+DESCRIPTION;LANGUAGE=en-US:Good morning\,\n\nIs this phishing?\n\n\nBest\,\n\n\nJohn Smith\, Manager\, People & Culture\n\nACME Corporation\n\n123 Main Street\, Ste. 200 | Seattle\, WA 98121\n\nWorking remotely\n\nC: 555.555.5555\n\njsmith@example.com<mailto:jsmith@example.com>\n\nexample.com\n\nStay in touch with ACME Corp on Facebook<https://www.facebook.com/example> and LinkedIn<http://www.linkedin.com/company/example>\n\nBest Workplaces Award Winner\n\n________________________________\nFrom: attacker@malicious-domain.org <attacker@malicious-domain.org> on behalf of ACME Corp Share-File <AcmeCorp>\nSent: Wednesday\, January 14\, 2026 10:57 AM\nTo: John Smith <jsmith@example.com>\nSubject: Reminder - 2026 Annual Work Report\nWhen: Wednesday\, January 14\, 2026 10:56 AM-10:56 AM.\nWhere: Conference Room\n\n\n\n\n2026 ACME Corp File\nWork_Order_Authorization_Form_2026-01-14.pdf\n25 KB\nOpen<https://malicious-phishing-site.lambda-url.us-east-1.on.aws/?e=dGVzdEBleGFtcGxlLmNvbQ==>\nJob expires on January 16\, 2026\n\n\n\n\n
+UID:test-uid-12345-phishing-ics
+SUMMARY;LANGUAGE=en-US:Fw: Reminder - 2026 Annual Work Report 
+DTSTART;TZID=Greenwich Standard Time:20260114T185653
+DTEND;TZID=Greenwich Standard Time:20260114T185653
+CLASS:PUBLIC
+PRIORITY:5
+DTSTAMP:20260114T185553Z
+TRANSP:OPAQUE
+STATUS:CONFIRMED
+LOCATION;LANGUAGE=en-US:Conference Room
+X-MICROSOFT-CDO-BUSYSTATUS:TENTATIVE
+X-MICROSOFT-CDO-INTENDEDSTATUS:BUSY
+X-MICROSOFT-CDO-ALLDAYEVENT:FALSE
+X-MICROSOFT-CDO-IMPORTANCE:1
+X-MICROSOFT-CDO-INSTTYPE:0
+X-MICROSOFT-DONOTFORWARDMEETING:FALSE
+X-MICROSOFT-DISALLOW-COUNTER:FALSE
+X-MICROSOFT-REQUESTEDATTENDANCEMODE:DEFAULT
+X-MICROSOFT-ISRESPONSEREQUEUTED:TRUE
+END:VEVENT
+END:VCALENDAR

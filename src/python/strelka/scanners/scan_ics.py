@@ -1,3 +1,4 @@
+import re
 from typing import Any, Dict, List, Optional, Union
 from datetime import timedelta
 
@@ -22,6 +23,7 @@ class ScanIcs(strelka.Scanner):
       * Data URIs (data:mime/type;base64,content)
       * Base64 binary attachments (ENCODING=BASE64 parameter)
       * Regular URIs (stored as metadata)
+    - URL extraction from text fields (DESCRIPTION, SUMMARY, LOCATION)
     - Human-readable duration formatting (e.g., "-15m" instead of "-1 day, 23:45:00")
 
     Dependencies:
@@ -33,6 +35,15 @@ class ScanIcs(strelka.Scanner):
     DEFAULT_MAX_ATTENDEES_PER_COMPONENT = 100
     DEFAULT_MAX_ORGANIZERS_PER_COMPONENT = 10
     DEFAULT_MAX_ATTACHMENTS_PER_COMPONENT = 50
+    DEFAULT_MAX_URLS_PER_COMPONENT = 100
+    
+    # URL extraction pattern - matches http, https, ftp URLs
+    # Handles URLs in angle brackets like Text<URL> common in phishing
+    URL_PATTERN = re.compile(
+        r'(?:<)?(https?://[^\s<>"\'\)]+)(?:>)?|'  # URLs possibly in angle brackets
+        r'(ftp://[^\s<>"\'\)]+)',  # FTP URLs
+        re.IGNORECASE
+    )
 
     def scan(self, data: bytes, file: strelka.File, options: Dict[str, Any], expire_at: int) -> None:
         """Main scanning function that processes ICS file data.
@@ -205,6 +216,9 @@ class ScanIcs(strelka.Scanner):
             'VALARM': ['TRIGGER', 'ACTION', 'REPEAT', 'DURATION'],
         }
         
+        # Fields that may contain embedded URLs (common phishing vector)
+        text_fields_with_urls = ['DESCRIPTION', 'SUMMARY', 'LOCATION']
+        
         # Get fields to extract for this component type
         fields_to_extract = common_fields + type_specific_fields.get(comp_type, [])
         
@@ -218,7 +232,20 @@ class ScanIcs(strelka.Scanner):
                 if field_name in ['DTSTART', 'DTEND', 'DUE', 'DURATION', 'DTSTAMP', 'CREATED', 'LAST-MODIFIED', 'TRIGGER']:
                     comp_data[convenience_field] = self._extract_datetime_value(component[field_name])
                 else:
-                    comp_data[convenience_field] = str(component[field_name])
+                    field_value = str(component[field_name])
+                    comp_data[convenience_field] = field_value
+                    
+                    # Extract URLs from text fields - critical for phishing detection
+                    if field_name in text_fields_with_urls:
+                        extracted_urls = self._extract_urls_from_text(field_value)
+                        for url in extracted_urls:
+                            self.event['total']['urls'] += 1
+                            # Limit stored URLs per component
+                            if len(comp_data['urls']) < self.limits.get('max_urls_per_component', self.DEFAULT_MAX_URLS_PER_COMPONENT):
+                                if url not in comp_data['urls']:  # Avoid duplicates
+                                    comp_data['urls'].append(url)
+                            else:
+                                self.flags.append(f'url_limit_exceeded_per_component_{self.limits.get("max_urls_per_component", self.DEFAULT_MAX_URLS_PER_COMPONENT)}')
 
     def _extract_datetime_value(self, dt_value: Any) -> str:
         """Extract clean datetime/date/duration values from icalendar objects."""
@@ -521,3 +548,34 @@ class ScanIcs(strelka.Scanner):
         value_lower = value.lower()
         return any(value_lower.startswith(f'{scheme}:') for scheme in uri_schemes)
 
+    def _extract_urls_from_text(self, text: str) -> List[str]:
+        """Extract URLs from text content like DESCRIPTION, SUMMARY, LOCATION.
+        
+        This is critical for detecting phishing attacks where malicious URLs
+        are embedded in calendar invite descriptions rather than using the
+        dedicated URL property.
+        
+        Common patterns detected:
+        - Text<https://malicious.url> (angle bracket format)
+        - Plain https://url embedded in text
+        - FTP URLs
+        
+        Args:
+            text: Text content to scan for URLs
+            
+        Returns:
+            list: Unique URLs found in the text
+        """
+        if not text:
+            return []
+        
+        urls = set()
+        for match in self.URL_PATTERN.finditer(text):
+            # Get whichever group matched (http/https or ftp)
+            url = match.group(1) or match.group(2)
+            if url:
+                # Clean up any trailing punctuation that got captured
+                url = url.rstrip('.,;:!?\'")')
+                urls.add(url)
+        
+        return list(urls)
