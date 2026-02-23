@@ -5,6 +5,12 @@ on:
   release:
     types: [published]
 
+env:
+  # This is required to prevent newer versions of the GHA runner
+  # from creating an attestation manifest, which causes issues
+  # during the 'manifest_image' job.
+  BUILDX_NO_DEFAULT_ATTESTATIONS: '1'
+
 jobs:
   push_to_registry:
     name: Build & Push to Registries
