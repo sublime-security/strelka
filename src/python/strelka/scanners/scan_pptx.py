@@ -19,6 +19,8 @@ import io
 import zipfile
 from urllib.parse import urlparse, parse_qs
 
+import olefile
+import oletools.oleobj
 from lxml import etree
 from pptx import Presentation
 
@@ -32,15 +34,6 @@ NS = {
     "p": "http://schemas.openxmlformats.org/presentationml/2006/main",
 }
 RID_ATTR = "{%s}id" % NS["r"]
-
-# High-risk ActiveX/OLE ProgIDs
-HIGH_RISK_PROGIDS = {
-    "Shell.Explorer",      # Web browser control
-    "WScript.Shell",       # Shell execution
-    "Shell.Application",   # Shell application
-    "WScript.Network",     # Network access
-    "Scripting.FileSystemObject",  # File system access
-}
 
 # Known CLSIDs and related vulnerabilities
 # Source: https://github.com/decalage2/oletools/blob/master/oletools/common/clsid.py
@@ -250,29 +243,16 @@ KNOWN_CLSIDS = {
 
 def _lookup_clsid(clsid):
     """
-    Look up CLSID description and check if dangerous.
+    Look up CLSID description.
 
     Args:
         clsid: CLSID string (with or without braces)
 
     Returns:
-        tuple of (description, is_dangerous)
+        description string, or None if not found
     """
-    # Normalize CLSID format (remove braces, convert to uppercase)
     normalized = clsid.strip().strip('{}').upper()
-
-    desc = KNOWN_CLSIDS.get(normalized, None)
-
-    # Check if dangerous based on description keywords
-    is_dangerous = False
-    if desc:
-        dangerous_indicators = [
-            "CVE-", "may trigger", "Known Related", "potential exploit",
-            "may contain and run", "OLE Package Object"
-        ]
-        is_dangerous = any(indicator in desc for indicator in dangerous_indicators)
-
-    return (desc, is_dangerous)
+    return KNOWN_CLSIDS.get(normalized, None)
 
 
 def _extract_activex_controls_from_zip(pptx_io):
@@ -315,7 +295,7 @@ def _extract_activex_controls_from_zip(pptx_io):
                             properties[name] = value
 
                     # Look up CLSID in known database
-                    clsid_desc, is_dangerous = _lookup_clsid(classid)
+                    clsid_desc = _lookup_clsid(classid)
 
                     activex_controls.append({
                         "type": "activex_control",
@@ -324,7 +304,6 @@ def _extract_activex_controls_from_zip(pptx_io):
                         "persistence": persistence,
                         "properties": properties,
                         "is_activex": True,
-                        "is_high_risk": is_dangerous,
                         "source_file": ax_file,
                     })
                 except Exception:
@@ -352,13 +331,13 @@ def _parse_ppaction(action_url):
         dict with 'ppaction_url', 'verb', and 'fields'
     """
     if not action_url or not action_url.startswith("ppaction://"):
-        return {"ppaction_url": None, "verb": None, "fields": {}}
+        return {"ppaction_url": None, "verb": None, "params": {}}
 
     parsed = urlparse(action_url)
     return {
         "ppaction_url": action_url,
         "verb": (parsed.netloc or None),
-        "fields": {
+        "params": {
             k: (v[0] if len(v) == 1 else v)
             for k, v in parse_qs(parsed.query).items()
         },
@@ -421,13 +400,16 @@ def _extract_shape_actions(shape, slide_num):
                 pp_info = _parse_ppaction(action_url)
                 target, is_external = _get_relationship_info(part, rid)
 
+                action_type = "ppaction" if pp_info["ppaction_url"] else "hyperlink"
+
                 actions.append({
                     "slide": slide_num,
                     "shape": shape_name,
                     "trigger": trigger,
+                    "action_type": action_type,
                     "verb": pp_info["verb"],
                     "ppaction_url": pp_info["ppaction_url"],
-                    "fields": pp_info["fields"],
+                    "params": pp_info["params"],
                     "rid": rid or None,
                     "target": target,
                     "is_external": is_external,
@@ -503,7 +485,6 @@ def _extract_shape_ole_metadata(shape, slide_num):
     # Detect ActiveX controls
     is_activex = False
     control_type = None
-    is_high_risk = False
 
     if prog_id:
         # Check for ActiveX prefixes
@@ -523,20 +504,15 @@ def _extract_shape_ole_metadata(shape, slide_num):
             if len(parts) >= 2:
                 control_type = parts[1]  # e.g., "CommandButton" from "Forms.CommandButton.1"
 
-        # Check for high-risk ProgIDs
-        is_high_risk = any(
-            prog_id.startswith(risk_id) for risk_id in HIGH_RISK_PROGIDS
-        )
-
     return {
         "slide": slide_num,
         "shape": shape_name,
         "prog_id": prog_id,
         "is_activex": is_activex,
         "control_type": control_type,
-        "is_high_risk": is_high_risk,
         "show_as_icon": getattr(ole, "show_as_icon", None),
         "blob_size": len(blob) if blob else None,
+        "blob": blob,  # consumed by scanner loop for native stream parsing
     }
 
 
@@ -641,6 +617,133 @@ def _extract_slide_relationships(slide, slide_num):
     return relationships
 
 
+# Content types python-pptx rejects but that have identical structure to .pptx
+_COERCE_CONTENT_TYPES = {
+    # .ppsx — slideshow
+    "application/vnd.openxmlformats-officedocument.presentationml.slideshow.main+xml",
+    # .ppsm — macro-enabled slideshow
+    "application/vnd.ms-powerpoint.slideshow.macroEnabled.main+xml",
+    # .potx — template
+    "application/vnd.openxmlformats-officedocument.presentationml.template.main+xml",
+    # .potm — macro-enabled template
+    "application/vnd.ms-powerpoint.template.macroEnabled.main+xml",
+}
+_PPTX_MAIN_CT = (
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation.main+xml"
+)
+
+
+_RELS_NS = "http://schemas.openxmlformats.org/package/2006/relationships"
+
+
+def _sanitize_rels_xml(xml_bytes):
+    """
+    Remove <Relationship> elements missing the required Target attribute.
+
+    python-pptx raises InvalidXmlError on such elements, preventing any
+    metadata extraction from the file.  Dropping the malformed entries
+    allows loading to proceed; their absence is flagged separately.
+
+    Returns:
+        (sanitized_bytes, removed_count)
+    """
+    try:
+        root = etree.fromstring(xml_bytes)
+        tag = f"{{{_RELS_NS}}}Relationship"
+        to_remove = [el for el in root if el.tag == tag and el.get("Target") is None]
+        for el in to_remove:
+            root.remove(el)
+        if not to_remove:
+            return xml_bytes, 0
+        return etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True), len(to_remove)
+    except Exception:
+        return xml_bytes, 0
+
+
+def _normalize_pptx_bytes(data):
+    """
+    Normalize an OOXML package so python-pptx can load it.
+
+    Two fixes are applied:
+    1. Content type coercion — .ppsx/.ppsm/.potx/.potm share the same
+       structure as .pptx but python-pptx rejects them by content type.
+    2. Malformed relationship removal — any <Relationship> missing the
+       required Target attribute is stripped to prevent InvalidXmlError.
+
+    Args:
+        data: Raw bytes of the OOXML file.
+
+    Returns:
+        (normalized_bytes, malformed_rel_count)
+    """
+    try:
+        with zipfile.ZipFile(io.BytesIO(data), "r") as zf_in:
+            ct_xml = zf_in.read("[Content_Types].xml").decode("utf-8")
+
+        needs_ct_patch = any(ct in ct_xml for ct in _COERCE_CONTENT_TYPES)
+        for ct in _COERCE_CONTENT_TYPES:
+            ct_xml = ct_xml.replace(ct, _PPTX_MAIN_CT)
+
+        total_removed = 0
+        patched_rels = {}
+        with zipfile.ZipFile(io.BytesIO(data), "r") as zf_in:
+            for item in zf_in.infolist():
+                if item.filename.endswith(".rels"):
+                    sanitized, removed = _sanitize_rels_xml(zf_in.read(item.filename))
+                    if removed:
+                        patched_rels[item.filename] = sanitized
+                        total_removed += removed
+
+        if not needs_ct_patch and not patched_rels:
+            return data, 0
+
+        buf = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(data), "r") as zf_in, \
+             zipfile.ZipFile(buf, "w", compression=zipfile.ZIP_DEFLATED) as zf_out:
+            for item in zf_in.infolist():
+                if item.filename == "[Content_Types].xml":
+                    zf_out.writestr(item, ct_xml.encode("utf-8"))
+                elif item.filename in patched_rels:
+                    zf_out.writestr(item, patched_rels[item.filename])
+                else:
+                    zf_out.writestr(item, zf_in.read(item.filename))
+
+        return buf.getvalue(), total_removed
+    except Exception:
+        return data, 0
+
+
+def _extract_ole_native_info(blob):
+    """
+    Extract OleNativeStream fields from an OLE Package blob.
+
+    Parses the \\1Ole10Native stream inside a CFB blob to surface the
+    original filename, source path, temp path, payload size, and whether
+    the object is a link vs embedded payload.
+
+    Args:
+        blob: Raw bytes of an OLE/CFB object (from shape.ole_format.blob)
+
+    Returns:
+        dict with native stream fields, or None if not an OLE Package
+    """
+    try:
+        with olefile.OleFileIO(blob) as ole:
+            if not ole.exists('\x01Ole10Native'):
+                return None
+            stream_data = ole.openstream('\x01Ole10Native').read()
+            native = oletools.oleobj.OleNativeStream(bindata=stream_data)
+            return {
+                "filename": str(native.filename) if native.filename else None,
+                "src_path": str(native.src_path) if native.src_path else None,
+                "temp_path": str(native.temp_path) if native.temp_path else None,
+                "actual_size": native.actual_size,
+                "is_link": bool(native.is_link),
+            }
+    except Exception:
+        return None
+
+
 class ScanPptx(strelka.Scanner):
     """
     Collects metadata, extracts text, and detects active content from PPTX files.
@@ -663,7 +766,11 @@ class ScanPptx(strelka.Scanner):
     def scan(self, data, file, options, expire_at):
         extract_text = options.get("extract_text", False)
 
-        with io.BytesIO(data) as pptx_io:
+        normalized, malformed_rels = _normalize_pptx_bytes(data)
+        if malformed_rels:
+            self.flags.append(f"malformed_relationships_{malformed_rels}")
+
+        with io.BytesIO(normalized) as pptx_io:
             try:
                 pptx_doc = Presentation(pptx_io)
 
@@ -786,6 +893,11 @@ class ScanPptx(strelka.Scanner):
                         try:
                             ole_metadata = _extract_shape_ole_metadata(shape, slide_num)
                             if ole_metadata:
+                                blob = ole_metadata.pop("blob", None)
+                                if blob:
+                                    native_info = _extract_ole_native_info(blob)
+                                    if native_info:
+                                        ole_metadata["native"] = native_info
                                 all_ole_objects.append(ole_metadata)
                         except Exception:
                             pass
@@ -856,9 +968,6 @@ class ScanPptx(strelka.Scanner):
                 )
                 self.event["has_activex_controls"] = any(
                     obj.get("is_activex", False) for obj in all_ole_objects
-                )
-                self.event["has_high_risk_ole"] = any(
-                    obj.get("is_high_risk", False) for obj in all_ole_objects
                 )
 
                 # Comprehensive URL extraction (backward compatibility + new methods)
