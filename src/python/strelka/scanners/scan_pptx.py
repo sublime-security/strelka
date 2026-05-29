@@ -47,6 +47,12 @@ class ScanPptx(strelka.Scanner):
                 extracted_urls = []
 
                 for slide in pptx_doc.slides:
+                    # Process notes
+                    if slide.has_notes_slide:
+                        notes_text = slide.notes_slide.notes_text_frame.text.strip()
+                        if notes_text:
+                            extracted_notes.append(notes_text)
+
                     for shape in slide.shapes:
                         # Count images
                         if shape.shape_type == 13:  # MSO_SHAPE_TYPE.PICTURE
@@ -64,11 +70,6 @@ class ScanPptx(strelka.Scanner):
                                     text = run.text.strip()
                                     if text:
                                         self.event['word_count'] += len(text.split())
-                        # Process notes
-                        if slide.has_notes_slide:
-                            notes_text = slide.notes_slide.notes_text_frame.text.strip()
-                            if notes_text:
-                                extracted_notes.append(notes_text)
 
                         # Extract hyperlinks
                         if hasattr(shape, 'click_action') and shape.click_action:
