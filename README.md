@@ -72,47 +72,6 @@ More documentation about Strelka can be found in the [README](https://target.git
 - [Architecture](https://target.github.io/strelka/#/?id=architecture)
 - [FAQ](https://target.github.io/strelka/#/?id=frequently-asked-questions)
 
-## Running Tests Locally
-
-Scanner tests can be run locally against the production backend image. Currently, there are standalone tests written
-to validate the QR Scanner.
-
-#### Step 1: Build the Backend Image
-
-From the repository root:
-
-```bash
-docker build -t strelka-backend-local -f build/python/backend/Dockerfile .
-```
-
-This takes several minutes on first run; subsequent builds use the Docker layer cache.
-
-#### Step 2: Run the Tests
-
-```bash
-docker run --rm \
-  --user root \
-  --entrypoint bash \
-  -e PYTHONPATH=/strelka_src \
-  -v $(pwd)/src/python:/strelka_src:ro \
-  strelka-backend-local \
-  -c "apt-get update -q && apt-get install -y python3-pytest -q && python3 -m pytest /strelka_src/strelka/tests/ -v"
-```
-
-The `-v` mount injects the local source tree over the installed egg so that edits to scanners and tests are picked up without rebuilding the image. `python3-pytest` is installed at runtime because the production image strips build tooling to keep the image small.
-
-To run a single test file (in this example, `test_scan_qr_standalone.py`):
-
-```bash
-docker run --rm \
-  --user root \
-  --entrypoint bash \
-  -e PYTHONPATH=/strelka_src \
-  -v $(pwd)/src/python:/strelka_src:ro \
-  strelka-backend-local \
-  -c "apt-get update -q && apt-get install -y python3-pytest -q && python3 -m pytest /strelka_src/strelka/tests/test_scan_qr_standalone.py -v"
-```
-
 ## Contribute
 Guidelines for contributing can be found [here](https://github.com/target/strelka/blob/master/CONTRIBUTING.md).
 
