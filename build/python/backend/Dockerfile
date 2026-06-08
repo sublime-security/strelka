@@ -128,18 +128,6 @@ RUN mkdir tesseract && cd tesseract && git init && git remote add origin https:/
 # Install English support for Tesseract
 RUN wget https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata && mv eng.traineddata /usr/local/share/tessdata/
 
-# Install Zbar from binary; 0.23.92 has a critical vulnerability, 0.23.93 must be installed from source or binary
-# The fixed version is available in the Ubuntu 22.04 main apt repos only with an Ubuntu pro subscription, which we don't have.
-# Once we upgrade to Ubuntu 24.04, we can drop this and go back to `apt install libzbar-dev`.
-RUN wget https://github.com/mchehab/zbar/archive/refs/tags/0.23.93.tar.gz && \
-    tar -zxvf 0.23.93.tar.gz && \
-    cd zbar-0.23.93 && \
-    autoreconf -vfi && \
-    ./configure && \
-    make && \
-    make install && \
-    cd ..
-
 # Install Python packages
 COPY ./build/python/backend/requirements.txt /strelka/requirements.txt
 RUN pip3 install --no-cache-dir -r /strelka/requirements.txt
@@ -147,6 +135,14 @@ RUN pip3 install --no-cache-dir -r /strelka/requirements.txt
 # Copy Strelka files
 COPY ./src/python/ /strelka/
 COPY ./build/python/backend/setup.py /strelka/setup.py
+
+# Download WeChat QR model files to a stable path outside /strelka/ so they
+# survive the cleanup step that runs rm -rf /strelka/ below.
+RUN mkdir -p /opt/strelka/models/wechat_qrcode && \
+    wget -q -O /opt/strelka/models/wechat_qrcode/detect.prototxt https://raw.githubusercontent.com/WeChatCV/opencv_3rdparty/wechat_qrcode/detect.prototxt && \
+    wget -q -O /opt/strelka/models/wechat_qrcode/detect.caffemodel https://raw.githubusercontent.com/WeChatCV/opencv_3rdparty/wechat_qrcode/detect.caffemodel && \
+    wget -q -O /opt/strelka/models/wechat_qrcode/sr.prototxt https://raw.githubusercontent.com/WeChatCV/opencv_3rdparty/wechat_qrcode/sr.prototxt && \
+    wget -q -O /opt/strelka/models/wechat_qrcode/sr.caffemodel https://raw.githubusercontent.com/WeChatCV/opencv_3rdparty/wechat_qrcode/sr.caffemodel
 
 # Install Strelka
 RUN cd /strelka/ && \
