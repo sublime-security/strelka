@@ -7,5 +7,6 @@ setuptools.setup(
     description='strelka: container-based file analysis at scale',
     license='Apache 2.0',
     packages=setuptools.find_packages(),
+    package_data={'strelka': ['scanners/models/wechat_qrcode/*']},
     scripts=['bin/strelka-backend']
 )
