@@ -46,7 +46,16 @@ def _preprocess_variants(bgr: NDArray[Any]) -> list[NDArray[Any]]:
 
     variants.append(255 - bgr)
 
+    # Recover QR codes rendered with heavily squished proportions
     h, w = bgr.shape[:2]
+    aspect = w / h
+    if aspect < ASPECT_RATIO_LOWER_BOUND or aspect > ASPECT_RATIO_UPPER_BOUND:
+        sq = min(max(h, w), ASPECT_RATIO_MAX_NORMALISED_DIM)
+        normalized = cv2.resize(bgr, (sq, sq), interpolation=cv2.INTER_LINEAR)
+        variants.append(normalized)
+        if sq < 512:
+            variants.append(cv2.resize(normalized, (512, 512), interpolation=cv2.INTER_CUBIC))
+
     if max(h, w) < 512:
         scale = 512 / max(h, w)
         variants.append(cv2.resize(bgr, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC))
@@ -60,11 +69,6 @@ def _preprocess_variants(bgr: NDArray[Any]) -> list[NDArray[Any]]:
             pad = 10
             crop = bgr[max(0, by - pad) : by + bh + pad, max(0, bx - pad) : bx + bw + pad]
             variants.extend(cv2.split(crop))
-
-    aspect = w / h
-    if aspect < ASPECT_RATIO_LOWER_BOUND or aspect > ASPECT_RATIO_UPPER_BOUND:
-        sq = min(max(h, w), ASPECT_RATIO_MAX_NORMALISED_DIM)
-        variants.append(cv2.resize(bgr, (sq, sq), interpolation=cv2.INTER_LINEAR))
 
     return variants
 
