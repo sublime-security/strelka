@@ -528,6 +528,7 @@ scanners:
           - 'soap_file'
           - 'text/calendar'
           - 'application/ics'
+          - 'text/csv'
           - 'text/html'
           - 'text/plain'
           - 'text/rtf'
@@ -597,6 +598,7 @@ scanners:
           - 'image/svg+xml'
           - 'text/calendar'
           - 'application/ics'
+          - 'text/csv'
       priority: 5
 #  'ScanVb': revisit
 #    - positive:
