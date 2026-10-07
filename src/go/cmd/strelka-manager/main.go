@@ -26,7 +26,7 @@ func main() {
 
 	confData, err := ioutil.ReadFile(*confPath)
 	if err != nil {
-		log.Fatalf("failed to read config file %s: %v", *confPath, err)
+		log.Fatalf("failed to read config file %s: %v", confPath, err)
 	}
 	var conf structs.Manager
 	err = yaml.Unmarshal(confData, &conf)
