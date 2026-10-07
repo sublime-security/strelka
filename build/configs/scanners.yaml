@@ -30,11 +30,7 @@ scanners:
     - positive:
         flavors:
           - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          - 'application/msword'
-          - 'olecf_file'
-          - 'ooxml_file'
           - 'application/vnd.ms-word.document.macroEnabled.12'
-          - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           - 'application/vnd.openxmlformats-officedocument.wordprocessingml.template'
           - 'application/vnd.ms-word.template.macroEnabled.12'
       priority: 5
@@ -363,14 +359,7 @@ scanners:
     - positive:
         flavors:
           - 'application/CDFV2'
-          - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           - 'application/msword'
-          - 'olecf_file'
-          - 'ooxml_file'
-          - 'application/vnd.ms-word.document.macroEnabled.12'
-          - 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          - 'application/vnd.openxmlformats-officedocument.wordprocessingml.template'
-          - 'application/vnd.ms-word.template.macroEnabled.12'
           - 'olecf_file'
       priority: 5
   'ScanPdf':
@@ -528,6 +517,7 @@ scanners:
           - 'soap_file'
           - 'text/calendar'
           - 'application/ics'
+          - 'text/csv'
           - 'text/html'
           - 'text/plain'
           - 'text/rtf'
@@ -597,6 +587,7 @@ scanners:
           - 'image/svg+xml'
           - 'text/calendar'
           - 'application/ics'
+          - 'text/csv'
       priority: 5
 #  'ScanVb': revisit
 #    - positive:
