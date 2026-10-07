@@ -1,6 +1,6 @@
 module strelka-frontend
 
-go 1.25.0
+go 1.26.8
 
 require (
 	github.com/go-redis/redis/v8 v8.11.4
