@@ -73,13 +73,6 @@ jobs:
             exit 1
           fi
 
-      - name: Login to DockerHub
-        uses: docker/login-action@v1
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
-
-
       # If this workflow runs for a semver that hasn't been released, then we'll fail below. This workflow is only
       # meant to add the `latest` tag onto an existing release.
 
@@ -112,31 +105,21 @@ jobs:
         run: |
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
-          docker_hub=sublimesec/strelka-frontend
           ecr=$ECR_REGISTRY/strelka-frontend
           ecr_gc=$ECR_GC_REGISTRY/strelka-frontend
 
-          docker manifest create $docker_hub:latest \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:latest \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:latest \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MAJOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MAJOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:$MAJOR_VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MINOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MINOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
@@ -144,13 +127,10 @@ jobs:
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:latest
           docker manifest push $ecr:latest
           docker manifest push $ecr_gc:latest
-          docker manifest push $docker_hub:$MAJOR_VERSION
           docker manifest push $ecr:$MAJOR_VERSION
           docker manifest push $ecr_gc:$MAJOR_VERSION
-          docker manifest push $docker_hub:$MINOR_VERSION
           docker manifest push $ecr:$MINOR_VERSION
           docker manifest push $ecr_gc:$MINOR_VERSION
 
@@ -164,31 +144,21 @@ jobs:
         run: |
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
-          docker_hub=sublimesec/strelka-backend
           ecr=$ECR_REGISTRY/strelka-backend
           ecr_gc=$ECR_GC_REGISTRY/strelka-backend
 
-          docker manifest create $docker_hub:latest \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:latest \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:latest \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MAJOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MAJOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:$MAJOR_VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MINOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MINOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
@@ -196,13 +166,10 @@ jobs:
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:latest
           docker manifest push $ecr:latest
           docker manifest push $ecr_gc:latest
-          docker manifest push $docker_hub:$MAJOR_VERSION
           docker manifest push $ecr:$MAJOR_VERSION
           docker manifest push $ecr_gc:$MAJOR_VERSION
-          docker manifest push $docker_hub:$MINOR_VERSION
           docker manifest push $ecr:$MINOR_VERSION
           docker manifest push $ecr_gc:$MINOR_VERSION
 
@@ -216,31 +183,21 @@ jobs:
         run: |
           amd_tag=amd64-$SEM_VER
           arm_tag=arm64-$SEM_VER
-          docker_hub=sublimesec/strelka-manager
           ecr=$ECR_REGISTRY/strelka-manager
           ecr_gc=$ECR_GC_REGISTRY/strelka-manager
 
-          docker manifest create $docker_hub:latest \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:latest \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:latest \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MAJOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MAJOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
           docker manifest create $ecr_gc:$MAJOR_VERSION \
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
-          docker manifest create $docker_hub:$MINOR_VERSION \
-              $docker_hub:$amd_tag \
-              $docker_hub:$arm_tag
           docker manifest create $ecr:$MINOR_VERSION \
               $ecr:$amd_tag \
               $ecr:$arm_tag
@@ -248,13 +205,10 @@ jobs:
               $ecr_gc:$amd_tag \
               $ecr_gc:$arm_tag
 
-          docker manifest push $docker_hub:latest
           docker manifest push $ecr:latest
           docker manifest push $ecr_gc:latest
-          docker manifest push $docker_hub:$MAJOR_VERSION
           docker manifest push $ecr:$MAJOR_VERSION
           docker manifest push $ecr_gc:$MAJOR_VERSION
-          docker manifest push $docker_hub:$MINOR_VERSION
           docker manifest push $ecr:$MINOR_VERSION
           docker manifest push $ecr_gc:$MINOR_VERSION
 
