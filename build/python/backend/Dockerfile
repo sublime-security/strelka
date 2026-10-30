@@ -39,7 +39,6 @@ RUN apt-get -qq update && \
     antiword \
     libarchive-dev \
     libavif13 \
-    libfuzzy-dev \
     libmagic-dev \
     libssl-dev \
     libgl1 \
