@@ -7,7 +7,7 @@ from io import BytesIO
 
 import pefile
 from signify.exceptions import *
-from signify.signed_pe import SignedPEFile
+from signify.authenticode.signed_file import SignedPEFile
 from strelka import strelka
 
 CHARACTERISTICS_DLL = {
@@ -238,7 +238,7 @@ def parse_certificates(data):
 
     try:
         pefile = SignedPEFile(buffer)
-        signed_datas = list(pefile.signed_datas)
+        signed_datas = list(pefile.embedded_signatures)
     except (SignedPEParseError, SignerInfoParseError, AuthenticodeParseError, VerificationError,
             CertificateVerificationError, SignerInfoVerificationError, AuthenticodeVerificationError) as e:
         logging.info(f"signify threw error {e} when processing PE file")
@@ -252,7 +252,7 @@ def parse_certificates(data):
         try:
             certs = signed_data.certificates
             for cert in certs:
-                asn1 = cert.to_asn1crypto
+                asn1 = cert.asn1
                 issuer = asn1.issuer.native
                 cert_dict = {
                     "country_name": issuer.get("country_name"),
@@ -260,25 +260,30 @@ def parse_certificates(data):
                     "organizational_unit_name": issuer.get("organizational_unit_name"),
                     "common_name": issuer.get("common_name"),
                     "serial_number": str(cert.serial_number),
-                    "issuer_dn": cert.issuer_dn,
-                    "subject_dn": cert.subject_dn,
+                    "issuer_dn": cert.issuer.dn,
+                    "subject_dn": cert.subject.dn,
                     "valid_from": cert.valid_from.isoformat(),
                     "valid_to": cert.valid_to.isoformat(),
                     # "signature_algorithim": cert.signature_algorithm
                 }
                 cert_list.append(cert_dict)
 
-            signer_dict = {'issuer': signed_data.signer_info.issuer_dn,
+            signer_dict = {'issuer': signed_data.signer_info.issuer.dn,
                            'serial': str(signed_data.signer_info.serial_number),
                            'program_name': signed_data.signer_info.program_name,
                            'more_info': signed_data.signer_info.more_info}
             # signer information
             signer_list.append(signer_dict)
 
-            if signed_data.signer_info.countersigner:
-                counter_signer_dict = {'issuer_dn': signed_data.signer_info.countersigner.issuer_dn,
-                                       'serial_number': str(signed_data.signer_info.countersigner.serial_number),
-                                       'signing_time': signed_data.signer_info.countersigner.signing_time.isoformat()}
+            countersigner = signed_data.signer_info.countersigner
+            if countersigner:
+                counter_signer_dict = {'signing_time': countersigner.signing_time.isoformat()}
+                if hasattr(countersigner, 'issuer'):
+                    counter_signer_dict['issuer_dn'] = countersigner.issuer.dn
+                    counter_signer_dict['serial_number'] = str(countersigner.serial_number)
+                elif hasattr(countersigner, 'signer_info'):
+                    counter_signer_dict['issuer_dn'] = countersigner.signer_info.issuer.dn
+                    counter_signer_dict['serial_number'] = str(countersigner.signer_info.serial_number)
                 counter_signer_list.append(counter_signer_dict)
 
         except SignedPEParseError:
